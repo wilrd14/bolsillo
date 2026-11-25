@@ -1,0 +1,14 @@
+{
+  "receipt": {
+    "merchant": "Tienda Sintética",
+    "date": "2026-11-25",
+    "total": "12.34",
+    "tax": "0.01",
+    "currency": "DOP",
+    "items": [
+      { "description": "Frutas", "amount": "5.00" },
+      { "description": "Embalaje", "amount": "7.33" }
+    ],
+    "confidence": { "merchant": 1, "date": 1, "total": 1 }
+  }
+}

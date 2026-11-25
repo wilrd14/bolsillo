@@ -1,0 +1,11 @@
+{
+  "receipt": {
+    "merchant": null,
+    "date": null,
+    "total": "20.00",
+    "tax": "0",
+    "currency": "USD",
+    "items": [{ "description": "Servicio sintético", "amount": "20.00" }],
+    "confidence": { "merchant": 0.5, "date": 0.25, "total": 0.9 }
+  }
+}

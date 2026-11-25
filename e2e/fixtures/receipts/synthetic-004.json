@@ -1,0 +1,11 @@
+{
+  "receipt": {
+    "merchant": "Merchant Punto",
+    "date": "2026-01-31",
+    "total": "12345.67",
+    "tax": "8.25",
+    "currency": "USD",
+    "items": [{ "description": "Item A", "amount": "12000.50" }],
+    "confidence": { "merchant": 1, "date": 1, "total": 1 }
+  }
+}

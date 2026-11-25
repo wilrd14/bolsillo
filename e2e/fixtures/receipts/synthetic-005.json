@@ -1,0 +1,11 @@
+{
+  "receipt": {
+    "merchant": "Merchant Coma",
+    "date": "2026-02-01",
+    "total": "12.345,67",
+    "tax": "0,5",
+    "currency": "EUR",
+    "items": [{ "description": "Item B", "amount": "12.345,67" }],
+    "confidence": { "merchant": 1, "date": 1, "total": 1 }
+  }
+}

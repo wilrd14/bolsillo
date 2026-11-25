@@ -1,0 +1,10 @@
+{
+  "receipt": {
+    "merchant": "Tienda sin total",
+    "date": "2026-11-25",
+    "tax": "0.01",
+    "currency": "DOP",
+    "items": [{ "description": "Sin importe", "amount": "1.00" }],
+    "confidence": { "merchant": 1, "date": 1, "total": 1 }
+  }
+}
