@@ -79,7 +79,9 @@ export function SummaryCard({
         },
       ]}
     >
-      <Text style={[theme.typography.secondary, { color: theme.colors.textMuted }]}>{title}</Text>
+      <Text style={[theme.typography.secondaryMedium, { color: theme.colors.textMuted }]}>
+        {title}
+      </Text>
       <Text style={[theme.typography.title1, { color: amountColor }]}>{displayAmount}</Text>
       {deltaText ? (
         <Text style={[theme.typography.label, { color: theme.colors.textMuted }]}>{deltaText}</Text>

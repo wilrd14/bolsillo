@@ -26,6 +26,8 @@ export interface TypographyTokens {
   readonly body: TextStyle;
   readonly secondary: TextStyle;
   readonly label: TextStyle;
+  readonly bodyMedium: TextStyle;
+  readonly secondaryMedium: TextStyle;
 }
 
 export interface SpacingTokens {
@@ -38,6 +40,9 @@ export interface SpacingTokens {
 }
 
 export interface RadiusTokens {
+  readonly sm: number;
+  readonly md: number;
+  readonly xl: number;
   readonly input: number;
   readonly card: number;
   readonly pill: number;
@@ -90,13 +95,33 @@ export const DARK_COLORS: ColorTokens = {
   backdrop: 'rgba(0, 0, 0, 0.7)',
 };
 
+/** Familias Inter cargadas en app/_layout.tsx; si fallan, RN usa la fuente del sistema. */
+export const FONT_FAMILY = {
+  regular: 'Inter_400Regular',
+  medium: 'Inter_500Medium',
+  semibold: 'Inter_600SemiBold',
+  bold: 'Inter_700Bold',
+} as const;
+
 export const TYPOGRAPHY: TypographyTokens = {
-  amountLarge: { fontSize: 40, fontWeight: '700', lineHeight: 48 },
-  title1: { fontSize: 24, fontWeight: '700', lineHeight: 30 },
-  title2: { fontSize: 18, fontWeight: '600', lineHeight: 24 },
-  body: { fontSize: 16, fontWeight: '400', lineHeight: 22 },
-  secondary: { fontSize: 14, fontWeight: '400', lineHeight: 20 },
-  label: { fontSize: 12, fontWeight: '500', lineHeight: 16 },
+  amountLarge: {
+    fontFamily: FONT_FAMILY.bold,
+    fontSize: 40,
+    lineHeight: 48,
+    letterSpacing: -0.8,
+  },
+  title1: { fontFamily: FONT_FAMILY.bold, fontSize: 24, lineHeight: 30, letterSpacing: -0.24 },
+  title2: { fontFamily: FONT_FAMILY.semibold, fontSize: 18, lineHeight: 24 },
+  body: { fontFamily: FONT_FAMILY.regular, fontSize: 16, lineHeight: 22 },
+  bodyMedium: { fontFamily: FONT_FAMILY.medium, fontSize: 16, lineHeight: 22 },
+  secondary: { fontFamily: FONT_FAMILY.regular, fontSize: 14, lineHeight: 20, letterSpacing: 0.14 },
+  secondaryMedium: {
+    fontFamily: FONT_FAMILY.medium,
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: 0.14,
+  },
+  label: { fontFamily: FONT_FAMILY.medium, fontSize: 12, lineHeight: 16, letterSpacing: 0.24 },
 };
 
 export const SPACING: SpacingTokens = {
@@ -109,6 +134,9 @@ export const SPACING: SpacingTokens = {
 };
 
 export const RADII: RadiusTokens = {
+  sm: 4,
+  md: 12,
+  xl: 24,
   input: 8,
   card: 16,
   pill: 999,
@@ -116,10 +144,12 @@ export const RADII: RadiusTokens = {
 
 const LIGHT_CARD_ELEVATION: ViewStyle = {
   shadowColor: '#111827',
-  shadowOffset: { width: 0, height: 2 },
-  shadowOpacity: 0.08,
-  shadowRadius: 8,
+  shadowOffset: { width: 0, height: 4 },
+  shadowOpacity: 0.05,
+  shadowRadius: 16,
   elevation: 2,
+  borderWidth: 1,
+  borderColor: 'rgba(17, 24, 39, 0.06)',
 };
 
 // En oscuro el Brief §5.3 sustituye la sombra por un borde sutil.

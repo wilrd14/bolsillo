@@ -56,7 +56,7 @@ export function Banner({
           backgroundColor: theme.colors.surface,
           borderColor: theme.colors.border,
           borderLeftColor: accent,
-          borderRadius: theme.radii.input,
+          borderRadius: theme.radii.md,
           paddingHorizontal: theme.spacing.md,
           paddingVertical: theme.spacing.sm,
           gap: theme.spacing.sm,

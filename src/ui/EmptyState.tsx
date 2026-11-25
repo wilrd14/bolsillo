@@ -38,7 +38,11 @@ export function EmptyState({
         <View
           style={[
             styles.placeholderIcon,
-            { backgroundColor: theme.colors.surfaceAlt, borderColor: theme.colors.border },
+            {
+              backgroundColor: theme.colors.surfaceAlt,
+              borderColor: theme.colors.border,
+              borderRadius: theme.radii.pill,
+            },
           ]}
         >
           <Text style={[theme.typography.title1, { color: theme.colors.primary }]}>—</Text>
@@ -67,7 +71,6 @@ const styles = StyleSheet.create({
   placeholderIcon: {
     width: 56,
     height: 56,
-    borderRadius: 999,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

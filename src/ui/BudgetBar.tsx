@@ -60,7 +60,7 @@ function BudgetBarBody({
   return (
     <View style={styles.content}>
       <View style={styles.header}>
-        <Text style={[theme.typography.body, styles.title, { color: theme.colors.text }]}>
+        <Text style={[theme.typography.title2, styles.title, { color: theme.colors.text }]}>
           {title}
         </Text>
         <Text style={[theme.typography.label, { color: fillColor }]}>{statusText}</Text>
@@ -164,11 +164,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   title: {
-    fontWeight: '600',
     flex: 1,
   },
   track: {
-    height: 10,
+    height: 8,
     width: '100%',
     overflow: 'hidden',
   },

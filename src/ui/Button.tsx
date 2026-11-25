@@ -1,7 +1,7 @@
 import type { StyleProp, ViewStyle } from 'react-native';
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 
-import { MIN_TOUCH_TARGET, type Theme } from '@/ui/theme';
+import { FONT_FAMILY, MIN_TOUCH_TARGET, type Theme } from '@/ui/theme';
 import { useTheme } from '@/ui/use-theme';
 
 export type ButtonVariant = 'primary' | 'secondary' | 'text' | 'danger';
@@ -69,7 +69,7 @@ export function Button({
           backgroundColor: colors.background,
           borderColor: colors.border,
           borderWidth: variant === 'secondary' ? 1 : 0,
-          borderRadius: theme.radii.input,
+          borderRadius: theme.radii.pill,
           paddingHorizontal: theme.spacing.lg,
           paddingVertical: theme.spacing.md,
           opacity: isDisabled ? 0.5 : pressed ? 0.8 : 1,
@@ -88,13 +88,13 @@ export function Button({
 
 const styles = StyleSheet.create({
   base: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: 48,
     minWidth: MIN_TOUCH_TARGET,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
   },
   label: {
-    fontWeight: '600',
+    fontFamily: FONT_FAMILY.semibold,
   },
 });

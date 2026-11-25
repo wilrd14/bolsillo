@@ -53,7 +53,7 @@ export function ConfirmDialog({
             theme.cardElevation,
             {
               backgroundColor: theme.colors.surface,
-              borderRadius: theme.radii.card,
+              borderRadius: theme.radii.xl,
               padding: theme.spacing.xl,
               gap: theme.spacing.md,
             },

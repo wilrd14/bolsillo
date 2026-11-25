@@ -65,7 +65,7 @@ export function Toast({
         {
           backgroundColor: theme.colors.surface,
           borderLeftColor: accent,
-          borderRadius: theme.radii.input,
+          borderRadius: theme.radii.md,
           paddingHorizontal: theme.spacing.lg,
           paddingVertical: theme.spacing.md,
         },

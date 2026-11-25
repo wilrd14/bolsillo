@@ -2,7 +2,6 @@ import type { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { formatMoney } from '@/core/money';
-import { MIN_TOUCH_TARGET } from '@/ui/theme';
 import { useTheme } from '@/ui/use-theme';
 
 export type TransactionRowKind = 'expense' | 'income';
@@ -45,13 +44,18 @@ function TransactionRowContent(
       <View
         style={[
           styles.badge,
-          { backgroundColor: theme.colors.surfaceAlt, borderColor: categoryColor },
+          {
+            backgroundColor: /^#[0-9a-f]{6}$/i.test(categoryColor)
+              ? `${categoryColor}26`
+              : theme.colors.surfaceAlt,
+            borderRadius: theme.radii.pill,
+          },
         ]}
       >
         {categoryIcon ?? <View style={[styles.badgeDot, { backgroundColor: categoryColor }]} />}
       </View>
       <View style={styles.details}>
-        <Text numberOfLines={1} style={[theme.typography.body, { color: theme.colors.text }]}>
+        <Text numberOfLines={1} style={[theme.typography.bodyMedium, { color: theme.colors.text }]}>
           {title}
         </Text>
         <View style={styles.metaRow}>
@@ -135,17 +139,15 @@ export function TransactionRow(props: TransactionRowProps) {
 
 const styles = StyleSheet.create({
   row: {
-    minHeight: MIN_TOUCH_TARGET,
+    minHeight: 56,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     borderBottomWidth: 1,
   },
   badge: {
-    width: 36,
-    height: 36,
-    borderRadius: 999,
-    borderWidth: 2,
+    width: 40,
+    height: 40,
     alignItems: 'center',
     justifyContent: 'center',
   },

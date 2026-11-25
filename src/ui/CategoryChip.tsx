@@ -29,10 +29,7 @@ export function CategoryChip(props: CategoryChipProps) {
           style={[styles.dot, { backgroundColor: selected ? theme.colors.onPrimary : color }]}
         />
       )}
-      <Text
-        numberOfLines={1}
-        style={[theme.typography.secondary, styles.label, { color: textColor }]}
-      >
+      <Text numberOfLines={1} style={[theme.typography.secondaryMedium, { color: textColor }]}>
         {label}
       </Text>
     </View>
@@ -89,8 +86,5 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 999,
-  },
-  label: {
-    fontWeight: '500',
   },
 });
