@@ -17,6 +17,9 @@ const mockDb = {
 };
 
 jest.mock('@/db/provider', () => ({ useDatabase: () => mockDb }));
+jest.mock('react-native-safe-area-context', () => ({
+  useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
+}));
 jest.mock('expo-router', () => ({ router: { push: jest.fn() } }));
 
 it('renders the form with Save disabled while the amount is empty', async () => {

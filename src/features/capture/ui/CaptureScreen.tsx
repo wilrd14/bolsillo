@@ -15,7 +15,7 @@ import {
   entryToMinor,
   type KeypadKey,
 } from '@/features/capture/ui/AmountKeypad';
-import { Banner, Button, CategoryChip, MIN_TOUCH_TARGET, Toast, useTheme } from '@/ui';
+import { Banner, Button, CategoryChip, DateField, MIN_TOUCH_TARGET, Toast, useTheme } from '@/ui';
 
 const KINDS = [
   { value: 'expense', label: es.capture.kindExpense },
@@ -154,18 +154,7 @@ export function CaptureScreen() {
 
         <View style={[styles.row, { gap: spacing.sm }]}>
           <View style={[styles.flex, cardStyle]}>
-            <Text style={[typography.label, { color: colors.textMuted }]}>
-              {es.capture.dateLabel}
-            </Text>
-            <TextInput
-              value={vm.date}
-              onChangeText={vm.setDate}
-              placeholder={es.capture.date}
-              placeholderTextColor={colors.textMuted}
-              accessibilityLabel={es.capture.date}
-              autoCapitalize="none"
-              style={[typography.bodyMedium, styles.dateInput, { color: colors.text }]}
-            />
+            <DateField label={es.capture.dateLabel} value={vm.date} onChange={vm.setDate} />
           </View>
           <Pressable
             onPress={() => router.push('/scan')}
@@ -218,6 +207,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: 'row' },
   kind: { flex: 1, minHeight: MIN_TOUCH_TARGET, alignItems: 'center', justifyContent: 'center' },
   field: { minHeight: MIN_TOUCH_TARGET },
-  dateInput: { minHeight: MIN_TOUCH_TARGET - 12, padding: 0 },
   scan: { justifyContent: 'center', gap: 2, minHeight: MIN_TOUCH_TARGET },
 });

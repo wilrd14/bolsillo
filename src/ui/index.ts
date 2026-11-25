@@ -8,6 +8,7 @@ export {
   type ConfirmDialogProps,
   type ConfirmDialogVariant,
 } from '@/ui/ConfirmDialog';
+export { DateField, type DateFieldProps } from '@/ui/DateField';
 export { EmptyState, type EmptyStateProps } from '@/ui/EmptyState';
 export { SummaryCard, type SummaryCardProps, type SummaryCardVariant } from '@/ui/SummaryCard';
 export { ThemeProvider, type ThemeProviderProps } from '@/ui/ThemeProvider';

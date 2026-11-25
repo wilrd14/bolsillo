@@ -73,6 +73,8 @@ export const es = {
     ],
     detailTitle: 'Detalle del movimiento',
     back: 'Volver',
+    changeAmount: 'Cambiar monto',
+    doneEditing: 'Listo',
     merchant: 'Comercio (opcional)',
     notFound: 'Este movimiento ya no existe.',
     updated: 'Cambios guardados',

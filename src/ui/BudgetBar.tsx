@@ -12,6 +12,8 @@ export interface BudgetBarProps {
   readonly percent: number;
   readonly statusText: string;
   readonly status?: BudgetBarStatus;
+  /** Solo la barra, sin tarjeta, título ni importes (para usarla dentro de otra tarjeta). */
+  readonly bare?: boolean;
   readonly onPress?: () => void;
   readonly accessibilityLabel?: string;
   readonly testID?: string;
@@ -111,6 +113,36 @@ export function BudgetBar(props: BudgetBarProps) {
       padding: theme.spacing.lg,
     },
   ];
+  const track = (
+    <View
+      style={[
+        styles.track,
+        { backgroundColor: theme.colors.surfaceAlt, borderRadius: theme.radii.pill },
+      ]}
+    >
+      <View
+        style={[
+          styles.fill,
+          { width: `${clampedWidth}%`, backgroundColor: fillColor, borderRadius: theme.radii.pill },
+        ]}
+      />
+    </View>
+  );
+
+  if (props.bare) {
+    return (
+      <View
+        testID={testID}
+        accessible
+        accessibilityRole="progressbar"
+        accessibilityLabel={resolvedLabel}
+        accessibilityValue={{ min: 0, max: 100, now: clampedWidth }}
+      >
+        {track}
+      </View>
+    );
+  }
+
   const body = (
     <BudgetBarBody
       title={title}

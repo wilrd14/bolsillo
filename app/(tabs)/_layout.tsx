@@ -101,6 +101,7 @@ export default function TabsLayout() {
         name="budgets"
         options={{
           title: 'Presupuestos',
+          headerShown: false,
           tabBarAccessibilityLabel: 'Presupuestos',
           tabBarIcon: ({ color }) => <TabGlyph glyph="◔" color={color} />,
         }}

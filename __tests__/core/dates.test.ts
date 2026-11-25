@@ -7,6 +7,7 @@ import {
   toIsoUtc,
   toMonthKey,
 } from '@/core/dates';
+import * as d from '@/core/dates';
 
 it('representa un instante y sus claves de calendario en UTC', () => {
   const date = new Date('2024-02-29T23:30:00-04:00');
@@ -31,4 +32,19 @@ it('calcula la semana de lunes a domingo aunque cambie el año', () => {
   expect(startOfWeek(sunday)).toBe('2022-12-26');
   expect(endOfWeek(sunday)).toBe('2023-01-01');
   expect(startOfWeek(new Date('2024-01-01'))).toBe('2024-01-01');
+});
+
+describe('fechas de pantalla', () => {
+  it('formatea y revierte DD/MM/AAAA', () => {
+    expect(d.formatDisplayDate('2026-11-05')).toBe('05/11/2026');
+    expect(d.parseDisplayDate('05/11/2026')).toBe('2026-11-05');
+    expect(d.parseDisplayDate('2026-11-05')).toBeNull();
+    expect(d.formatDisplayMonth('2026-11')).toBe('11/2026');
+  });
+
+  it('usa partes locales sin desfase de día', () => {
+    expect(d.toLocalDateKey(new Date(2026, 0, 1, 0, 30))).toBe('2026-01-01');
+    expect(d.toLocalDateKey(new Date(2026, 11, 31, 23, 59))).toBe('2026-12-31');
+    expect(d.toLocalDateKey(d.fromDateKey('2026-03-08'))).toBe('2026-03-08');
+  });
 });

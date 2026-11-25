@@ -65,7 +65,7 @@ it('virtualizes 1000 movements and groups them by day', async () => {
   expect(mockList).toHaveBeenCalledTimes(1);
   expect(rowButtons(root).length).toBeGreaterThan(0);
   expect(rowButtons(root).length).toBeLessThan(100);
-  expect(collectText(root.container)).toContain('de noviembre de 2026');
+  expect(collectText(root.container)).toContain('28/11/2026');
   act(() => root.unmount());
 });
 

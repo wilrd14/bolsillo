@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { formatDisplayDate } from '@/core/dates';
 import { sumMoney } from '@/core/money';
 import { es } from '@/core/strings/es';
 import type { MovementKind } from '@/db/database';
@@ -50,11 +51,8 @@ const INITIAL_FILTERS: TransactionFiltersState = {
   month: null,
 };
 
-/** "2026-11-24" -> "24 de noviembre de 2026" sin APIs de Intl. */
-export function formatDay(dateKey: string): string {
-  const [year, month, day] = dateKey.split('-');
-  return `${Number(day)} de ${es.transactions.months[Number(month) - 1]} de ${year}`;
-}
+/** "2026-11-24" -> "24/11/2026" sin APIs de Intl. */
+export const formatDay = formatDisplayDate;
 
 export function formatMonth(monthKey: string): string {
   const [year, month] = monthKey.split('-');
@@ -225,7 +223,7 @@ export function useTransactions() {
         title: row.merchant || row.note || categoryName,
         categoryName,
         categoryColor: category?.color ?? null,
-        dateLabel: row.occurred_at,
+        dateLabel: formatDisplayDate(row.occurred_at),
       });
     }
     return result;

@@ -18,6 +18,8 @@ export interface AmountInputProps {
   readonly accessibilityLabel?: string;
   readonly autoFocus?: boolean;
   readonly editable?: boolean;
+  /** false oculta la vista previa formateada (cuando el importe ya se muestra aparte). */
+  readonly showPreview?: boolean;
   readonly testID?: string;
 }
 
@@ -117,12 +119,14 @@ export function AmountInput(props: AmountInputProps) {
           style={[styles.input, theme.typography.amountLarge, { color: accentColor }]}
         />
       </View>
-      <Text
-        accessibilityRole="text"
-        style={[theme.typography.secondary, { color: theme.colors.textMuted }]}
-      >
-        {formattedPreview}
-      </Text>
+      {props.showPreview === false ? null : (
+        <Text
+          accessibilityRole="text"
+          style={[theme.typography.secondary, { color: theme.colors.textMuted }]}
+        >
+          {formattedPreview}
+        </Text>
+      )}
     </View>
   );
 }

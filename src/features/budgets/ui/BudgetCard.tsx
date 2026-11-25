@@ -44,47 +44,49 @@ export function BudgetCard({
 
   return (
     <View
-      accessible
-      accessibilityRole="summary"
-      accessibilityLabel={`${name}: ${formattedSpent} ${es.budgets.spentOfLimit(formattedSpent, formattedLimit)}`}
-      style={[theme.cardElevation, styles.card]}
+      style={[
+        theme.cardElevation,
+        {
+          backgroundColor: theme.colors.surface,
+          borderRadius: theme.radii.card,
+          padding: theme.spacing.lg,
+          gap: theme.spacing.md,
+        },
+      ]}
     >
-      <Pressable
-        onPress={onEdit}
-        accessibilityRole="button"
-        accessibilityLabel={`${es.budgets.editTitle}: ${name}`}
-        style={styles.pressable}
-      >
-        <View style={styles.header}>
-          <View style={[styles.icon, { backgroundColor: color ?? theme.colors.primary }]} />
+      <View style={styles.header}>
+        <View style={[styles.icon, { backgroundColor: color ?? theme.colors.primary }]} />
+        <View style={styles.flex}>
           <Text
-            style={[theme.typography.bodyMedium, styles.flex, { color: theme.colors.text }]}
+            style={[theme.typography.bodyMedium, { color: theme.colors.text }]}
             numberOfLines={1}
           >
             {name}
           </Text>
           <Text
-            accessibilityRole="text"
-            style={[
-              theme.typography.label,
-              styles.badge,
-              {
-                backgroundColor: badgeColor ?? theme.colors.surfaceAlt,
-                color: badgeColor ? theme.colors.onPrimary : theme.colors.textMuted,
-              },
-            ]}
+            style={[theme.typography.secondary, { color: theme.colors.textMuted }]}
+            numberOfLines={2}
           >
-            {`${percent} %`}
+            {es.budgets.spentOfLimit(formattedSpent, formattedLimit)}
           </Text>
         </View>
         <Text
-          style={[theme.typography.secondary, { color: theme.colors.textMuted }]}
-          numberOfLines={1}
+          accessibilityRole="text"
+          style={[
+            theme.typography.label,
+            styles.badge,
+            {
+              borderRadius: theme.radii.pill,
+              backgroundColor: badgeColor ?? theme.colors.surfaceAlt,
+              color: badgeColor ? theme.colors.onPrimary : theme.colors.textMuted,
+            },
+          ]}
         >
-          {es.budgets.spentOfLimit(formattedSpent, formattedLimit)}
+          {`${percent} %`}
         </Text>
-      </Pressable>
+      </View>
       <BudgetBar
+        bare
         title={name}
         spentLabel={formattedSpent}
         limitLabel={formattedLimit}
@@ -94,53 +96,61 @@ export function BudgetCard({
       {status === 'exceeded' ? (
         <Text
           accessibilityRole="text"
-          style={[theme.typography.label, styles.note, { color: theme.colors.danger }]}
+          style={[theme.typography.label, { color: theme.colors.danger }]}
         >
           {`${es.budgets.completed} ${es.budgets.overGoal(formatMoney(-remainingMinor, DEFAULT_CURRENCY, LOCALE))}`}
         </Text>
       ) : status === 'warning' ? (
         <Text
           accessibilityRole="text"
-          style={[theme.typography.label, styles.note, { color: theme.colors.textMuted }]}
+          style={[theme.typography.label, { color: theme.colors.textMuted }]}
         >
           {es.budgetWarning(percent, name)}
         </Text>
       ) : null}
-      <Pressable
-        onPress={onDelete}
-        accessibilityRole="button"
-        accessibilityLabel={`${es.budgets.deleteBudget}: ${name}`}
-        style={styles.delete}
-      >
-        <Text style={[theme.typography.label, { color: theme.colors.danger }]}>
-          {es.budgets.deleteBudget}
-        </Text>
-      </Pressable>
+      <View style={[styles.actions, { gap: theme.spacing.sm }]}>
+        <Pressable
+          onPress={onEdit}
+          accessibilityRole="button"
+          accessibilityLabel={`${es.budgets.editTitle}: ${name}`}
+          style={styles.action}
+        >
+          <Text style={[theme.typography.label, { color: theme.colors.primary }]}>
+            {es.budgets.editTitle}
+          </Text>
+        </Pressable>
+        <Pressable
+          onPress={onDelete}
+          accessibilityRole="button"
+          accessibilityLabel={`${es.budgets.deleteBudget}: ${name}`}
+          style={styles.action}
+        >
+          <Text style={[theme.typography.label, { color: theme.colors.danger }]}>
+            {es.budgets.deleteBudget}
+          </Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  card: {
-    gap: 12,
-    padding: 16,
-    minHeight: MIN_TOUCH_TARGET + 24,
-  },
-  pressable: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  icon: {
-    width: 12,
-    height: 12,
-    borderRadius: 24,
-  },
+  flex: { flex: 1, minWidth: 0 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  icon: { width: 12, height: 12, borderRadius: 6 },
   badge: {
-    minWidth: 28,
+    minWidth: 44,
     textAlign: 'center',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    overflow: 'hidden',
   },
-  note: { textAlign: 'right' },
-  delete: {
-    alignItems: 'flex-end',
-    justifyContent: 'flex-end',
+  actions: { flexDirection: 'row', justifyContent: 'flex-end' },
+  action: {
+    minHeight: MIN_TOUCH_TARGET,
+    minWidth: MIN_TOUCH_TARGET,
+    paddingHorizontal: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

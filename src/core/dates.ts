@@ -40,3 +40,33 @@ export function startOfWeek(date: Date): string {
 export function endOfWeek(date: Date): string {
   return weekBoundary(date, 6);
 }
+
+/** Clave AAAA-MM-DD con las partes locales (no UTC) de la fecha. */
+export function toLocalDateKey(date: Date): string {
+  const pad = (n: number, size = 2) => String(n).padStart(size, '0');
+  return `${pad(date.getFullYear(), 4)}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+}
+
+/** Fecha local a mediodía (evita saltos de día por horario de verano) a partir de AAAA-MM-DD. */
+export function fromDateKey(dateKey: string): Date {
+  const [year, month, day] = dateKey.split('-').map(Number);
+  return new Date(year, month - 1, day, 12);
+}
+
+/** "2026-11-25" -> "25/11/2026"; lo que no sea AAAA-MM-DD se devuelve tal cual. */
+export function formatDisplayDate(dateKey: string): string {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(dateKey);
+  return match ? `${match[3]}/${match[2]}/${match[1]}` : dateKey;
+}
+
+/** "25/11/2026" -> "2026-11-25"; null si no tiene ese formato. */
+export function parseDisplayDate(display: string): string | null {
+  const match = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(display);
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : null;
+}
+
+/** "2026-11" -> "11/2026"; lo que no sea AAAA-MM se devuelve tal cual. */
+export function formatDisplayMonth(monthKey: string): string {
+  const match = /^(\d{4})-(\d{2})$/.exec(monthKey);
+  return match ? `${match[2]}/${match[1]}` : monthKey;
+}
