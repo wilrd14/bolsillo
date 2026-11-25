@@ -12,7 +12,7 @@
     "format": "prettier --write .",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "build": "npm run typecheck && npx expo export"
+    "build": "npm run typecheck && npx expo export --platform ios --platform android"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.2",
