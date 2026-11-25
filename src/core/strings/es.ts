@@ -17,6 +17,8 @@ export const es = {
     newBudget: 'Nuevo presupuesto',
     save: 'Guardar',
     scanReceipt: 'Escanear factura',
+    cancel: 'Cancelar',
+    accept: 'Aceptar',
   },
   capture: {
     title: 'Captura',
@@ -116,5 +118,27 @@ export const es = {
   } satisfies Record<AppErrorCode, string>,
   budgetWarning(percent: number, category: string): string {
     return `Llevas el ${percent} % de tu presupuesto de ${category} este mes.`;
+  },
+  budgets: {
+    title: 'Presupuestos',
+    eyebrow: 'Planificación',
+    monthSelector: 'Seleccionar mes',
+    totalMonth: 'Presupuesto total del mes',
+    categories: 'Categorías',
+    createTitle: 'Nuevo presupuesto',
+    editTitle: 'Editar presupuesto',
+    spent: 'Gastado',
+    available: 'Disponible',
+    spentOfLimit: (spent: string, limit: string) => `${spent} de ${limit} límite`,
+    executed: (percent: number) => `${percent} % ejecutado`,
+    daysLeft: (count: number) => (count === 1 ? 'Queda 1 día' : `Quedan ${count} días`),
+    categoriesCount: (count: number) => (count === 1 ? '1 categoría' : `${count} categorías`),
+    limit: 'Límite',
+    limitRequired: 'Escribe un límite positivo.',
+    completed: 'Presupuesto completado',
+    overGoal: (amount: string) => `+${amount} del objetivo`,
+    deleteBudget: 'Eliminar',
+    deleteConfirmTitle: '¿Eliminar presupuesto?',
+    deleteConfirmMessage: 'Desaparece el límite de esta categoría para este mes.',
   },
 };

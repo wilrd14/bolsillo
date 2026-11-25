@@ -4,18 +4,31 @@ import {
   Inter_600SemiBold,
   Inter_700Bold,
 } from '@expo-google-fonts/inter';
+import { addNotificationReceivedListener } from 'expo-notifications';
 import { useFonts } from 'expo-font';
 import { SplashScreen, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { StatusBar } from 'expo-status-bar';
+import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { es } from '@/core/strings/es';
 import { DatabaseProvider } from '@/db/provider';
-import { ThemeProvider, useTheme } from '@/ui';
+import { ThemeProvider, Toast, useTheme } from '@/ui';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
 
 const FONT_TIMEOUT_MS = 3000;
+
+const styles = StyleSheet.create({
+  toast: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+});
 
 function RootNavigator() {
   const theme = useTheme();
@@ -40,6 +53,29 @@ function RootNavigator() {
         />
       </Stack>
     </>
+  );
+}
+
+/** Muestra un Toast cuando un aviso de presupuesto llega con la app en primer plano. */
+function ForegroundNotifications() {
+  const insets = useSafeAreaInsets();
+  const [message, setMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const subscription = addNotificationReceivedListener((notification) => {
+      setMessage(notification.request.content.body ?? '');
+    });
+    return () => subscription.remove();
+  }, []);
+
+  return (
+    <View style={[styles.toast, { top: insets.top }]}>
+      <Toast
+        visible={message !== null}
+        message={message ?? ''}
+        onDismiss={() => setMessage(null)}
+      />
+    </View>
   );
 }
 
@@ -74,6 +110,7 @@ export default function RootLayout() {
     <ThemeProvider>
       <DatabaseProvider>
         <RootNavigator />
+        <ForegroundNotifications />
       </DatabaseProvider>
     </ThemeProvider>
   );
