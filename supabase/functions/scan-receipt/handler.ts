@@ -22,7 +22,7 @@ function fail(code: ErrorCode) {
 
 type Dependencies = {
   authenticate: (token: string) => Promise<string | null>;
-  consumeQuota: (userId: string) => Promise<boolean>;
+  consumeQuota: (userId: string, receiptId: string) => Promise<boolean>;
   download: (path: string, token: string) => Promise<Blob | null>;
   vision: (image: Blob) => Promise<unknown>;
   log?: (userId: string | null, code: ErrorCode | 'ok', elapsedMs: number) => void;
@@ -58,7 +58,7 @@ export function createHandler(deps: Dependencies) {
       const { receipt_id: receiptId, storage_path: path } = body.data;
       if (path !== `${userId}/${receiptId}.jpg`) return fail('invalid_request');
 
-      if (!(await deps.consumeQuota(userId))) return fail('quota_exceeded');
+      if (!(await deps.consumeQuota(userId, receiptId))) return fail('quota_exceeded');
       const image = await deps.download(path, token);
       if (!image) return fail('image_not_found');
       return extract(deps.vision, image);

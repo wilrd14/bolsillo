@@ -1,4 +1,5 @@
 import type { Database, StoredRow } from '@/db/database';
+import { recoverInterruptedReceipts } from '@/db/recover-receipts';
 
 export interface ReceiptRow extends StoredRow {
   local_uri: string | null;
@@ -10,6 +11,7 @@ export interface ReceiptRow extends StoredRow {
 
 export function createReceiptRepository(db: Database) {
   return {
+    recover: () => recoverInterruptedReceipts(db),
     insert(id: string, uri: string, now: string) {
       return db.runAsync(
         "INSERT INTO receipt (id, local_uri, status, created_at, updated_at) VALUES (?, ?, 'pending', ?, ?)",
@@ -31,6 +33,17 @@ export function createReceiptRepository(db: Database) {
         "SELECT * FROM receipt WHERE status = 'pending' AND deleted_at IS NULL ORDER BY created_at, id",
       );
     },
+    discardedFiles() {
+      return db.getAllAsync<{ id: string; local_uri: string }>(
+        'SELECT id, local_uri FROM receipt WHERE deleted_at IS NOT NULL AND local_uri IS NOT NULL',
+      );
+    },
+    clearDiscardedFile(id: string) {
+      return db.runAsync(
+        'UPDATE receipt SET local_uri = NULL WHERE id = ? AND deleted_at IS NOT NULL',
+        id,
+      );
+    },
     claim(id: string, now: string) {
       return db.runAsync(
         "UPDATE receipt SET status = 'processing', updated_at = ? WHERE id = ? AND status = 'pending' AND deleted_at IS NULL",
@@ -47,7 +60,9 @@ export function createReceiptRepository(db: Database) {
       error: string | null,
     ) {
       return db.runAsync(
-        'UPDATE receipt SET status = ?, updated_at = ?, storage_path = ?, extracted_json = ?, error_code = ? WHERE id = ?',
+        `UPDATE receipt SET status = ?, updated_at = ?, storage_path = ?,
+           extracted_json = ?, error_code = ?
+         WHERE id = ? AND status = 'processing' AND deleted_at IS NULL`,
         status,
         now,
         path,
@@ -63,8 +78,13 @@ export function createReceiptRepository(db: Database) {
       );
       return Boolean(row);
     },
-    remove(id: string) {
-      return db.runAsync('DELETE FROM receipt WHERE id = ?', id);
+    remove(id: string, now: string) {
+      return db.runAsync(
+        'UPDATE receipt SET deleted_at = ?, updated_at = ? WHERE id = ?',
+        now,
+        now,
+        id,
+      );
     },
   };
 }

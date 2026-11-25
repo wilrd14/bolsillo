@@ -30,6 +30,14 @@ export interface ReceiptScanDependencies {
 
 const uuid = z.uuid();
 const source = z.string().min(1);
+const queues = new WeakMap<
+  Database,
+  {
+    running?: Promise<void>;
+    rerun: boolean;
+    edits: Set<string>;
+  }
+>();
 const confirmation = z.strictObject({
   amount_minor: z.int().positive(),
   currency: z.string().regex(/^[A-Z]{3}$/),
@@ -48,17 +56,29 @@ function validate<T>(schema: z.ZodType<T>, input: unknown): T {
 export function createReceiptScanService(db: Database, deps: ReceiptScanDependencies) {
   const repository = createReceiptRepository(db);
   const now = () => toIsoUtc(new Date());
-  let queue: Promise<void> | undefined;
-  let rerun = false;
-  const edits = new Set<string>();
+  const queue = queues.get(db) ?? { rerun: false, edits: new Set<string>() };
+  queues.set(db, queue);
+  const { edits } = queue;
+
+  async function removeDiscardedFiles() {
+    for (const row of await repository.discardedFiles()) {
+      await deps.files.remove(row.local_uri);
+      await repository.clearDiscardedFile(row.id);
+    }
+  }
 
   async function processPending() {
+    await withDatabaseAccess(db, removeDiscardedFiles);
     if (!(await deps.network.isOnline())) return;
     const userId = await deps.remote.userId();
     if (userId === null) return;
     validate(uuid, userId);
 
-    for (const receipt of await withDatabaseAccess(db, repository.pending)) {
+    const pending = await withDatabaseAccess(db, async () => {
+      await repository.recover();
+      return repository.pending();
+    });
+    for (const receipt of pending) {
       if (!(await deps.network.isOnline())) return;
       if (edits.has(receipt.id)) continue;
       const claim = await withDatabaseAccess(db, () => repository.claim(receipt.id, now()));
@@ -92,16 +112,16 @@ export function createReceiptScanService(db: Database, deps: ReceiptScanDependen
   }
 
   function processQueue() {
-    rerun = true;
-    queue ??= (async () => {
-      while (rerun) {
-        rerun = false;
+    queue.rerun = true;
+    queue.running ??= (async () => {
+      while (queue.rerun) {
+        queue.rerun = false;
         await processPending();
       }
     })().finally(() => {
-      queue = undefined;
+      queue.running = undefined;
     });
-    return queue;
+    return queue.running;
   }
 
   async function edit<T>(id: unknown, operation: (receiptId: string) => Promise<T>) {
@@ -147,16 +167,15 @@ export function createReceiptScanService(db: Database, deps: ReceiptScanDependen
     },
     cancelReceipt(id: unknown) {
       return edit(id, async (receiptId) => {
-        await queue?.catch(() => undefined);
+        await queue.running?.catch(() => undefined);
         await withDatabaseAccess(db, async () => {
           const row = await repository.find(receiptId);
           if (!row) return;
           if (await repository.isAttached(receiptId)) {
             throw new AppError('VALIDATION', 'Receipt is attached to a transaction');
           }
-          if (row.storage_path) await deps.remote.remove(row.storage_path);
-          if (row.local_uri) await deps.files.remove(row.local_uri);
-          await repository.remove(receiptId);
+          await repository.remove(receiptId, now());
+          await removeDiscardedFiles();
         });
       });
     },

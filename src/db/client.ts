@@ -1,5 +1,6 @@
 import type { Database } from '@/db/database';
 import { migrate } from '@/db/migrate';
+import { recoverInterruptedReceipts } from '@/db/recover-receipts';
 
 export { wipeLocalData } from '@/db/wipe-local-data';
 
@@ -18,6 +19,7 @@ export function createDatabaseClient(openDatabaseAsync: OpenDatabase): () => Pro
       const db = await openDatabaseAsync('bolsillo.db');
       try {
         await migrate(db);
+        await recoverInterruptedReceipts(db);
         return db;
       } catch (error) {
         await db.closeAsync();

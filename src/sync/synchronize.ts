@@ -11,7 +11,7 @@ const cursorsSchema = z.partialRecord(z.enum(SYNC_ENTITIES), cursorSchema);
 
 export interface SyncRemote {
   userId(): Promise<string | null>;
-  push(userId: string, entity: SyncEntity, row: SyncRow): Promise<void>;
+  push(userId: string, entity: SyncEntity, row: SyncRow): Promise<unknown>;
   pull(userId: string, entity: SyncEntity, after?: SyncCursor): AsyncIterable<unknown>;
 }
 
@@ -34,14 +34,21 @@ export function createSynchronizer(db: Database, { remote, isOnline, now }: Sync
 
     const { cursor, queue } = await withDatabaseTransaction(db, () => local.prepare(userId));
     const acknowledged: string[] = [];
+    const canonicalRows: { entity: SyncEntity; row: SyncRow }[] = [];
     for (const { item, row } of orderQueue(queue)) {
       if (Number(item.retry_at) > now()) break;
       try {
-        await remote.push(
+        const canonical = await remote.push(
           userId,
           item.entity,
           'local_uri' in row ? { ...row, local_uri: null } : row,
         );
+        if (canonical !== undefined) {
+          canonicalRows.push({
+            entity: item.entity,
+            row: rowSchemas[item.entity].parse(canonical),
+          });
+        }
       } catch {
         const delay = Math.min(60_000, 1000 * 2 ** Math.min(item.attempts, 6));
         await withDatabaseTransaction(db, () => local.retry(item.id, now() + delay));
@@ -52,6 +59,7 @@ export function createSynchronizer(db: Database, { remote, isOnline, now }: Sync
     const incoming: { entity: SyncEntity; row: SyncRow }[] = [];
     const cursors = cursorsSchema.parse(JSON.parse(cursor));
     for (const entity of SYNC_ENTITIES) {
+      incoming.push(...canonicalRows.filter((change) => change.entity === entity));
       for await (const value of remote.pull(userId, entity, cursors[entity])) {
         const row = rowSchemas[entity].parse(value);
         incoming.push({ entity, row });

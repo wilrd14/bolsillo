@@ -28,6 +28,30 @@ const defaults = {
   vision: () => Promise.resolve(extraction),
 };
 
+Deno.test(
+  'passes the same quota identity on retries and a different one for a new receipt',
+  async () => {
+    const charged = new Set<string>();
+    const handler = createHandler({
+      ...defaults,
+      consumeQuota(userId, receiptId) {
+        const key = `${userId}/${receiptId}`;
+        if (charged.has(key)) return Promise.resolve(true);
+        if (charged.size === 1) return Promise.resolve(false);
+        charged.add(key);
+        return Promise.resolve(true);
+      },
+    });
+    equal((await handler(request())).status, 200);
+    equal((await handler(request())).status, 200);
+    equal([...charged][0], `${user}/${receipt}`);
+    equal(
+      (await handler(request({ receipt_id: user, storage_path: `${user}/${user}.jpg` }))).status,
+      429,
+    );
+  },
+);
+
 function request(payload: unknown = body, token = 'Bearer synthetic') {
   return new Request('http://localhost/scan-receipt', {
     method: 'POST',

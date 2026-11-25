@@ -38,6 +38,33 @@ export function insertOutbox(
   );
 }
 
+/** Adopta el ID publicado y conserva en la cola cualquier edición local pendiente. */
+async function reconcileIdentity(
+  db: Database,
+  table: '"budget"' | '"transaction"',
+  key: string,
+  values: SqlValue[],
+  row: StoredRow,
+) {
+  const [canonical] = await db.getAllAsync<Pick<StoredRow, 'updated_at' | 'deleted_at'>>(
+    `SELECT updated_at, deleted_at FROM ${table} WHERE id = ?`,
+    row.id,
+  );
+  if (!canonical) {
+    await db.runAsync(
+      `UPDATE ${table} SET id = ? WHERE ${key} AND id <> ?`,
+      row.id,
+      ...values,
+      row.id,
+    );
+  } else if (
+    row.updated_at > canonical.updated_at ||
+    (row.updated_at === canonical.updated_at && (row.deleted_at || !canonical.deleted_at))
+  ) {
+    await db.runAsync(`DELETE FROM ${table} WHERE ${key} AND id <> ?`, ...values, row.id);
+  }
+}
+
 /** Persiste la cola y aplica cambios remotos sobre la misma conexión SQLite. */
 export function createOutboxRepository(db: Database) {
   const setting = async (key: string) =>
@@ -49,7 +76,9 @@ export function createOutboxRepository(db: Database) {
   const forget = (key: string) => db.runAsync('DELETE FROM app_settings WHERE key = ?', key);
   const ownerKey = 'sync.owner';
   const cursorKey = 'sync.server_cursors';
-  const versionKey = (entity: SyncEntity, id: string) => `sync.queued.${entity}.${id}`;
+  const versionPrefix = (entity: SyncEntity) =>
+    entity === 'recurring_rule' ? 'sync.queued.anchor.' : `sync.queued.${entity}.`;
+  const versionKey = (entity: SyncEntity, id: string) => versionPrefix(entity) + id;
   const retryKey = (id: string) => `sync.retry.${id}`;
 
   return {
@@ -79,17 +108,27 @@ export function createOutboxRepository(db: Database) {
              AND NOT EXISTS (
                SELECT 1 FROM outbox o WHERE o.entity = ? AND o.entity_id = t.id
                  AND o.created_at = t.updated_at
+                 AND (o.entity <> 'recurring_rule' OR json_extract(o.payload, '$.anchor_day') IS NOT NULL)
              )`,
-          `sync.queued.${entity}.`,
+          versionPrefix(entity),
           entity,
         );
         for (const row of rows) {
+          const payload =
+            entity === 'recurring_rule' && 'next_due' in row && typeof row.next_due === 'string'
+              ? {
+                  ...row,
+                  anchor_day: Number(
+                    (await setting(`recurring.anchor.${row.id}`)) ?? row.next_due.slice(8),
+                  ),
+                }
+              : row;
           await insertOutbox(
             db,
             createLocalId(),
             entity,
             row.deleted_at ? 'delete' : 'upsert',
-            row,
+            payload,
           );
           await save(versionKey(entity, row.id), row.updated_at);
         }
@@ -114,17 +153,54 @@ export function createOutboxRepository(db: Database) {
       if (changes) await save(retryKey(id), String(at));
     },
     async merge(entity: SyncEntity, row: StoredRow) {
-      const fields = Object.entries(row).filter(([column]) => column !== 'local_uri');
+      if (entity === 'budget' && 'category_id' in row && 'month' in row) {
+        await reconcileIdentity(
+          db,
+          '"budget"',
+          'category_id = ? AND month = ?',
+          [row.category_id as SqlValue, row.month as SqlValue],
+          row,
+        );
+      }
+      if (
+        entity === 'transaction' &&
+        'recurring_id' in row &&
+        row.recurring_id !== null &&
+        'occurrence_index' in row
+      ) {
+        await reconcileIdentity(
+          db,
+          '"transaction"',
+          'recurring_id = ? AND occurrence_index = ?',
+          [row.recurring_id as SqlValue, row.occurrence_index as SqlValue],
+          row,
+        );
+      }
+      const table = `"${entity}"`;
+      if (entity === 'recurring_rule' && 'anchor_day' in row && row.anchor_day != null) {
+        const [current] = await db.getAllAsync<StoredRow>(
+          'SELECT updated_at FROM recurring_rule WHERE id = ?',
+          row.id,
+        );
+        if (!current || row.updated_at >= current.updated_at) {
+          await save(`recurring.anchor.${row.id}`, String(row.anchor_day));
+        }
+      }
+      const fields = Object.entries(row).filter(
+        ([column]) => column !== 'local_uri' && column !== 'anchor_day',
+      );
       const columns = fields.map(([column]) => column);
       const values = fields.map(([, value]) => value as SqlValue);
-      const table = `"${entity}"`;
       const assignment = columns
         .filter((column) => column !== 'id')
         .map((column) => `${column} = excluded.${column}`)
         .join(', ');
       await db.runAsync(
         `INSERT INTO ${table} (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})
-         ON CONFLICT(id) DO UPDATE SET ${assignment} WHERE excluded.updated_at > ${table}.updated_at`,
+         ON CONFLICT(id) DO UPDATE SET ${assignment}
+         WHERE excluded.updated_at > ${table}.updated_at
+           OR (excluded.updated_at = ${table}.updated_at
+             AND (excluded.deleted_at IS NOT NULL OR ${table}.deleted_at IS NULL))`,
         ...values,
       );
       await save(versionKey(entity, row.id), row.updated_at);

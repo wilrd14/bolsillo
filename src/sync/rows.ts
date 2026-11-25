@@ -45,6 +45,7 @@ export const rowSchemas = {
     category_id,
     frequency: z.enum(['weekly', 'monthly', 'yearly']),
     next_due: day,
+    anchor_day: z.int().min(1).max(31).nullish(),
     remind_days_before: z.int().nonnegative(),
     active: flag,
   }),

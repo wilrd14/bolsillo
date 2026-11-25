@@ -4,6 +4,8 @@ import { DatabaseSync } from 'node:sqlite';
 
 import type { Database, SqlValue } from '@/db/database';
 import { migrate } from '@/db/migrate';
+import { createRecurringService } from '@/features/recurring';
+import { createReceiptScanService, type ReceiptScanDependencies } from '@/features/receipt-scan';
 import type { SyncCursor, SyncRow } from '@/sync/rows';
 import { enqueueChange } from '@/sync/outbox';
 import { createSynchronizer, type SyncRemote } from '@/sync/synchronize';
@@ -47,11 +49,26 @@ beforeEach(async () => {
   user = 'test-account';
   rows = new Map();
   push = jest.fn(async (_user, entity, row) => {
-    const key = `${entity}/${row.id}`;
+    const naturalKey =
+      entity === 'budget' && 'month' in row
+        ? `${row.category_id}/${row.month}`
+        : entity === 'transaction' && 'recurring_id' in row && row.recurring_id
+          ? `${row.recurring_id}/${row.occurrence_index}`
+          : null;
+    const key = `${entity}/${naturalKey ?? row.id}`;
     const current = rows.get(key);
-    if (!current || row.updated_at > current.updated_at) {
-      rows.set(key, { ...row, synced_at: new Date(++serverTime).toISOString() });
+    if (
+      !current ||
+      row.updated_at > current.updated_at ||
+      (row.updated_at === current.updated_at && row.deleted_at && !current.deleted_at)
+    ) {
+      rows.set(key, {
+        ...row,
+        id: current?.id ?? row.id,
+        synced_at: new Date(++serverTime).toISOString(),
+      });
     }
+    if (naturalKey) return rows.get(key);
   });
   remote = {
     userId: async () => user,
@@ -115,6 +132,51 @@ test('sube el recibo antes del movimiento y conserva la URI en el dispositivo', 
   expect(await db.getAllAsync('SELECT local_uri FROM receipt WHERE id = ?', receiptId)).toEqual([
     { local_uri: 'file:///synthetic.jpg' },
   ]);
+});
+
+test('propaga un descarte sin conexión y retira la imagen remota al sincronizar', async () => {
+  const deviceB = await createDatabase();
+  const syncB = connect(deviceB);
+  const deps: ReceiptScanDependencies = {
+    compress: async (uri) => uri,
+    files: {
+      save: async (uri) => uri,
+      read: async () => new ArrayBuffer(1),
+      remove: jest.fn(async () => undefined),
+    },
+    network: { isOnline: async () => false, onReconnect: () => () => undefined },
+    remote: {
+      userId: async () => null,
+      upload: async () => undefined,
+      scan: async () => ({ ok: false, body: null }),
+      remove: async () => undefined,
+    },
+  };
+  const a = createReceiptScanService(db, deps);
+  const b = createReceiptScanService(deviceB, deps);
+  const { id } = await a.enqueueReceipt('file:///synthetic.jpg');
+  const path = `${user}/${id}.jpg`;
+  const images = new Set([path]);
+  await db.runAsync("UPDATE receipt SET storage_path = ?, status = 'done' WHERE id = ?", path, id);
+  const persist = push.getMockImplementation()!;
+  push.mockImplementation(async (owner, entity, row) => {
+    await persist(owner, entity, row);
+    if (entity === 'receipt' && rows.get(`receipt/${row.id}`)?.deleted_at) {
+      images.delete(`${owner}/${row.id}.jpg`);
+    }
+  });
+
+  await sync();
+  await syncB();
+  expect(await b.getReceipt(id)).toMatchObject({ status: 'done' });
+  await a.cancelReceipt(id);
+  expect(await a.getReceipt(id)).toBeUndefined();
+  expect(images.has(path)).toBe(true);
+  await sync();
+  await syncB();
+  expect(rows.get(`receipt/${id}`)?.deleted_at).toBeTruthy();
+  expect(await b.getReceipt(id)).toBeUndefined();
+  expect(images.has(path)).toBe(false);
 });
 
 test('sin cuenta no escribe, y dos ciclos con cuenta no duplican filas', async () => {
@@ -223,4 +285,92 @@ test('ambos dispositivos conservan la versión mayor aunque se publique primero'
   await expectCategory(db, shared.id, 'Versión posterior', laterEdit);
   await expectCategory(deviceB, shared.id, 'Versión posterior', laterEdit);
   expect(rows.get(`category/${shared.id}`)).toMatchObject({ updated_at: laterEdit });
+});
+
+const food = '4765444e-b400-4ec3-9b6e-6ed0950edcd1';
+
+test('ambos dispositivos conservan el ancla 31 y fusionan ocurrencias independientes', async () => {
+  const deviceB = await createDatabase();
+  const syncB = connect(deviceB);
+  let date = new Date('2026-02-28T12:00:00Z');
+  const reminders = { replace: async () => undefined };
+  const a = createRecurringService(db, reminders, () => date);
+  const b = createRecurringService(deviceB, reminders, () => date);
+  await a.createRule({
+    kind: 'expense',
+    amount_minor: 500,
+    category_id: food,
+    frequency: 'monthly',
+    next_due: '2026-01-31',
+  });
+  await a.generateDue('DOP');
+  await sync();
+  await syncB();
+
+  date = new Date('2026-04-30T12:00:00Z');
+  await a.generateDue('DOP');
+  await b.generateDue('DOP');
+  const dates = 'SELECT occurred_at FROM "transaction" ORDER BY occurrence_index';
+  expect(await deviceB.getAllAsync(dates)).toEqual([
+    { occurred_at: '2026-01-31' },
+    { occurred_at: '2026-02-28' },
+    { occurred_at: '2026-03-31' },
+    { occurred_at: '2026-04-30' },
+  ]);
+  expect(await deviceB.getAllAsync(dates)).toEqual(await db.getAllAsync(dates));
+  await sync();
+  await syncB();
+  await sync();
+  const movements = 'SELECT id, occurred_at FROM "transaction" ORDER BY occurrence_index';
+  expect(await deviceB.getAllAsync(movements)).toEqual(await db.getAllAsync(movements));
+  expect(await deviceB.getAllAsync('SELECT id FROM outbox')).toEqual([]);
+});
+
+test('fusiona un presupuesto con un borrado posterior bajo el ID canónico', async () => {
+  const deviceB = await createDatabase();
+  const syncB = connect(deviceB);
+  const a = {
+    id: '11111111-1111-4111-8111-111111111111',
+    category_id: food,
+    month: '2026-11',
+    limit_minor: 100,
+    alerted_80: 0,
+    alerted_100: 0,
+    created_at: earlyEdit,
+    updated_at: earlyEdit,
+    deleted_at: null,
+  };
+  const b = {
+    ...a,
+    id: '22222222-2222-4222-8222-222222222222',
+    limit_minor: 200,
+    updated_at: laterEdit,
+    deleted_at: laterEdit,
+  };
+  for (const [device, row] of [
+    [db, a],
+    [deviceB, b],
+  ] as const) {
+    await device.runAsync(
+      `INSERT INTO budget (id, category_id, month, limit_minor, created_at, updated_at, deleted_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      row.id,
+      row.category_id,
+      row.month,
+      row.limit_minor,
+      row.created_at,
+      row.updated_at,
+      row.deleted_at,
+    );
+    await enqueueChange(device, 'budget', row);
+  }
+  await sync();
+  await syncB();
+  await sync();
+  const sql = 'SELECT id, limit_minor, deleted_at FROM budget';
+  for (const device of [db, deviceB]) {
+    expect(await device.getAllAsync(sql)).toEqual([
+      { id: a.id, limit_minor: 200, deleted_at: laterEdit },
+    ]);
+  }
 });

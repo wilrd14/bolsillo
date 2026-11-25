@@ -2,6 +2,7 @@
 
 import { DatabaseSync } from 'node:sqlite';
 
+import { createDatabaseClient } from '@/db/client';
 import type { Database, SqlValue } from '@/db/database';
 import { migrate } from '@/db/migrate';
 import { createCategory } from '@/features/categories';
@@ -118,6 +119,25 @@ it('removes an offline scan and leaves nothing for reconnect to upload', async (
   connected = true;
   await service.processQueue();
   expect(deps.remote.upload).not.toHaveBeenCalled();
+});
+
+it('recovers an interrupted scan on reconnect using the original receipt ID', async () => {
+  const row = await service.enqueueReceipt('file:///synthetic.jpg');
+  await db.runAsync("UPDATE receipt SET status = 'processing' WHERE id = ?", row.id);
+  await createDatabaseClient(async () => ({ ...db, closeAsync: async () => undefined }))();
+  expect(await service.getReceipt(row.id)).toMatchObject({ status: 'pending' });
+  await db.runAsync("UPDATE receipt SET status = 'processing' WHERE id = ?", row.id);
+  const reopened = createReceiptScanService(db, deps);
+  const onError = jest.fn();
+  const unsubscribe = reopened.watchQueue(onError);
+  connected = true;
+  reconnect();
+  await reopened.processQueue();
+  expect(deps.remote.scan).toHaveBeenCalledTimes(1);
+  expect(deps.remote.scan).toHaveBeenCalledWith(row.id, `${userId}/${row.id}.jpg`);
+  expect(await reopened.getReceipt(row.id)).toMatchObject({ status: 'done' });
+  expect(onError).not.toHaveBeenCalled();
+  unsubscribe();
 });
 
 it.each([

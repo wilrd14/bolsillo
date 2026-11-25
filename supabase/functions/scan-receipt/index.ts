@@ -30,7 +30,7 @@ Deno.serve(
       if (!response.ok) throw new Error('Session validation failed');
       return z.object({ id: z.uuid() }).parse(await response.json()).id;
     },
-    async consumeQuota(userId) {
+    async consumeQuota(userId, receiptId) {
       const response = await fetch(`${url}/rest/v1/rpc/increment_scan_usage`, {
         method: 'POST',
         headers: { ...headers(serviceKey, serviceKey), 'content-type': 'application/json' },
@@ -38,6 +38,7 @@ Deno.serve(
           day: new Date().toISOString().slice(0, 10),
           limit: quota,
           p_user_id: userId,
+          p_receipt_id: receiptId,
         }),
       });
       if (!response.ok) throw new Error('Quota check failed');
