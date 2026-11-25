@@ -12,7 +12,7 @@
     "web": {
       "output": "static"
     },
-    "plugins": ["expo-router", "expo-sqlite"],
+    "plugins": ["expo-router", "expo-sqlite", "expo-font"],
     "experiments": {
       "typedRoutes": true
     }
