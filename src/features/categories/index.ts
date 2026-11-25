@@ -4,6 +4,13 @@ import { createCategoryRepository } from './data/category-repository';
 /** API pública de categorías. */
 export { archiveCategory, createCategory, updateCategory } from './service/write-categories';
 
+export type { CategoryRow } from './data/category-repository';
+
+/** Lista las categorías vigentes (activas y archivadas) para nombres y filtros. */
+export function listCategories(db: Database) {
+  return createCategoryRepository(db).list({ limit: 500, offset: 0 });
+}
+
 /** Busca una categoría vigente, aunque esté archivada. */
 export function findCategoryById(db: Database, id: string) {
   return createCategoryRepository(db).findById(id);
