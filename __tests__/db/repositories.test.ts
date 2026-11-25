@@ -159,3 +159,85 @@ it('shares initialization and retries when the database cannot be opened', async
   await expect(ready).resolves.toBe(connection);
   expect(open.mock.calls).toEqual([['bolsillo.db'], ['bolsillo.db']]);
 });
+
+it('acepta movimientos con campos nulos y rechaza importes que rompen la integridad (RNF-09)', async () => {
+  const categories = createCategoryRepository(db);
+  const transactions = createTransactionRepository(db);
+  await categories.insert(category);
+
+  await transactions.insert({ ...transaction, merchant: null, note: null });
+  const rows = await transactions.list({ ...page });
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({ merchant: null, note: null, amount_minor: 100 });
+
+  await expect(
+    transactions.insert({ ...transaction, id: 'cero', amount_minor: 0 }),
+  ).rejects.toThrow(/CHECK/);
+  await expect(
+    transactions.insert({ ...transaction, id: 'negativo', amount_minor: -50 }),
+  ).rejects.toThrow(/CHECK/);
+  await expect(
+    transactions.insert({ ...transaction, id: 'fraccionado', amount_minor: 100.5 }),
+  ).rejects.toThrow(/CHECK/);
+  expect(await transactions.list({ ...page })).toHaveLength(1);
+});
+
+it('concurrencia de escrituras: duplicados y presupuestos únicos rechazan', async () => {
+  const categories = createCategoryRepository(db);
+  const transactions = createTransactionRepository(db);
+  await categories.insert(category);
+
+  await expect(
+    Promise.all([transactions.insert(transaction), transactions.insert({ ...transaction })]),
+  ).rejects.toThrow(/UNIQUE/);
+  expect(await transactions.list({ ...page })).toHaveLength(1);
+
+  await expect(categories.insert(category)).rejects.toThrow(/UNIQUE/);
+
+  const insertBudget = `INSERT INTO budget
+    (id, category_id, month, limit_minor, created_at, updated_at)
+    VALUES (?, ?, '2026-01', 100, ?, ?)`;
+  await db.runAsync(insertBudget, 'budget', category.id, timestamp, timestamp);
+  await expect(
+    Promise.all([
+      db.runAsync(insertBudget, 'budget-2', category.id, timestamp, timestamp),
+      db.runAsync(insertBudget, 'budget-3', category.id, timestamp, timestamp),
+    ]),
+  ).rejects.toThrow(/UNIQUE/);
+});
+
+it('pagina en el límite: offset al final y limit igual al total', async () => {
+  const categories = createCategoryRepository(db);
+  const transactions = createTransactionRepository(db);
+  await categories.insert(category);
+
+  for (let index = 0; index < 3; index += 1) {
+    await transactions.insert({
+      ...transaction,
+      id: `movement-${index}`,
+      occurred_at: `2026-01-0${index + 1}`,
+    });
+  }
+
+  expect(await transactions.list({ ...page })).toHaveLength(3);
+  expect(await transactions.list({ ...page, offset: 2 })).toHaveLength(1);
+  expect(await transactions.list({ ...page, offset: 3 })).toHaveLength(0);
+  expect(await transactions.list({ ...page, limit: 100, offset: 100 })).toHaveLength(0);
+  expect((await categories.list({ ...page })).length).toBeGreaterThan(0);
+});
+
+it('borrado lógico idempotente y update sin efecto tras el borrado', async () => {
+  const categories = createCategoryRepository(db);
+  const transactions = createTransactionRepository(db);
+  await categories.insert(category);
+  await transactions.insert(transaction);
+
+  expect(await transactions.softDelete(transaction.id, changedAt)).toMatchObject({ changes: 1 });
+  expect(await transactions.softDelete(transaction.id, changedAt)).toMatchObject({ changes: 0 });
+  expect(
+    await transactions.update(transaction.id, { ...transaction, amount_minor: 300 }),
+  ).toMatchObject({ changes: 0 });
+  expect(await transactions.list({ ...page, includeDeleted: true })).toMatchObject([
+    { id: transaction.id, deleted_at: changedAt },
+  ]);
+});

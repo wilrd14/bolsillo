@@ -42,3 +42,17 @@ describe('dinero en unidad menor', () => {
     expect(() => percentage(Number.MAX_SAFE_INTEGER, 1)).toThrow(RangeError);
   });
 });
+
+describe('integridad de importes en unidad menor (RNF-09)', () => {
+  it('rechaza sumas con importes que no son enteros seguros', () => {
+    expect(() => sumMoney([1.5])).toThrow(RangeError);
+    expect(() => sumMoney([100, -0.5])).toThrow(RangeError);
+  });
+
+  it('acepta cero, negativos y el límite superior sin perder precisión', () => {
+    expect(sumMoney([0, -100, 100])).toBe(0);
+    expect(sumMoney([Number.MAX_SAFE_INTEGER, -1])).toBe(Number.MAX_SAFE_INTEGER - 1);
+    expect(formatMoney(0, 'USD', 'en-US')).toBe('$0.00');
+    expect(parseMoney('+5', 'USD', 'en-US')).toBe(500);
+  });
+});
