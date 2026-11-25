@@ -1,5 +1,6 @@
 import type { Database, StoredRow } from '@/db/database';
 import { createLocalId } from '@/db/local-id';
+import { insertOutbox } from '@/db/outbox-repository';
 
 export interface BudgetRow extends StoredRow {
   category_id: string;
@@ -75,15 +76,7 @@ export function createBudgetRepository(db: Database) {
       );
     },
     enqueue(row: BudgetRow) {
-      return db.runAsync(
-        `INSERT INTO outbox (id, entity, entity_id, op, payload, created_at)
-         VALUES (?, 'budget', ?, ?, ?, ?)`,
-        createLocalId(),
-        row.id,
-        row.deleted_at ? 'delete' : 'upsert',
-        JSON.stringify(row),
-        row.updated_at,
-      );
+      return insertOutbox(db, createLocalId(), 'budget', row.deleted_at ? 'delete' : 'upsert', row);
     },
   };
 }
