@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "Bolsillo",
+    "slug": "bolsillo",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "bolsillo",
+    "userInterfaceStyle": "automatic",
+    "android": {
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static"
+    },
+    "plugins": ["expo-router"],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

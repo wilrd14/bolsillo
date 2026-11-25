@@ -1,0 +1,11 @@
+node_modules/
+.expo/
+dist/
+web-build/
+coverage/
+docs/
+.claude/
+AGENTS.md
+GEMINI.md
+package-lock.json
+expo-env.d.ts

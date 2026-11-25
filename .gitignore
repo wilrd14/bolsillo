@@ -1,0 +1,28 @@
+# Orquestación con Claude Code (no se versiona)
+.claude/
+docs/
+
+# Dependencias y builds
+node_modules/
+.expo/
+dist/
+web-build/
+ios/
+android/
+*.tsbuildinfo
+
+# Entorno y secretos
+.env
+.env.*
+!.env.example
+supabase/.env
+supabase/.branches/
+supabase/.temp/
+
+# Sistema y editores
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+npm-debug.log*
+coverage/
