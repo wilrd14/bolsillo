@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 
-import { formatMoney, parseMoney } from '@/core/money';
+import { decimalSeparator, formatMoney, parseMoney } from '@/core/money';
 import { MIN_TOUCH_TARGET } from '@/ui/theme';
 import { useTheme } from '@/ui/use-theme';
 
@@ -21,13 +21,6 @@ export interface AmountInputProps {
   readonly testID?: string;
 }
 
-function getDecimalSeparator(locale: string): string {
-  const part = new Intl.NumberFormat(locale, { minimumFractionDigits: 1 })
-    .formatToParts(0)
-    .find((item) => item.type === 'decimal');
-  return part?.value ?? '.';
-}
-
 function formatEditableMinor(amountMinor: number, currency: string, locale: string): string {
   if (amountMinor === 0) {
     return '';
@@ -45,7 +38,7 @@ function formatEditableMinor(amountMinor: number, currency: string, locale: stri
   if (fraction === 0) {
     return String(whole);
   }
-  const sep = getDecimalSeparator(locale);
+  const sep = decimalSeparator(locale);
   const padded = String(fraction).padStart(maximumFractionDigits, '0').replace(/0+$/, '');
   return `${whole}${sep}${padded}`;
 }
@@ -59,7 +52,7 @@ function tryParseInput(
   if (trimmed === '') {
     return { valid: true, minor: 0, normalized: '' };
   }
-  const sep = getDecimalSeparator(locale);
+  const sep = decimalSeparator(locale);
   const normalized = trimmed.replace(/[.,]/g, sep);
   const safeText = normalized.endsWith(sep) ? `${normalized}0` : normalized;
   try {

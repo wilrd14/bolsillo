@@ -14,15 +14,19 @@ function toBigInt(value: number): bigint {
   return BigInt(value);
 }
 
+/** Separador decimal de la región. Hermes no implementa `formatToParts`: se deduce de `format`. */
+export function decimalSeparator(locale: string): string {
+  const sample = new Intl.NumberFormat(locale, { minimumFractionDigits: 1, useGrouping: false });
+  return /1(\D+)1/.exec(sample.format(1.1))?.[1] ?? '.';
+}
+
 /** Lee un importe sin agrupación con el separador decimal de la región. */
 export function parseMoney(text: string, currency: string, locale: string): number {
   const { maximumFractionDigits = 0 } = new Intl.NumberFormat(locale, {
     style: 'currency',
     currency,
   }).resolvedOptions();
-  const separator = new Intl.NumberFormat(locale, { minimumFractionDigits: 1 })
-    .formatToParts(0)
-    .find((part) => part.type === 'decimal')!.value;
+  const separator = decimalSeparator(locale);
   const [whole, fraction, extra] = text.trim().split(separator);
   if (
     !/^[+-]?\d+$/.test(whole) ||
@@ -37,24 +41,27 @@ export function parseMoney(text: string, currency: string, locale: string): numb
   return toInteger(BigInt(whole) * scale + (whole.startsWith('-') ? -minor : minor));
 }
 
-/** Formatea por partes para conservar los centavos incluso en importes grandes. */
+/**
+ * Formatea el importe conservando los centavos incluso en importes grandes.
+ * Usa solo `format` y `resolvedOptions` porque Hermes no implementa `formatToParts`.
+ */
 export function formatMoney(amountMinor: number, currency: string, locale: string): string {
   const amount = toBigInt(amountMinor);
+  const negative = amount < 0n;
+  const absolute = negative ? -amount : amount;
   const formatter = new Intl.NumberFormat(locale, { style: 'currency', currency });
-  const { numberingSystem, maximumFractionDigits = 0 } = formatter.resolvedOptions();
+  const { maximumFractionDigits = 0 } = formatter.resolvedOptions();
   const scale = 10n ** BigInt(maximumFractionDigits);
-  const whole = amount / scale;
-  const remainder = amount % scale;
-  const fraction = new Intl.NumberFormat(locale, {
-    numberingSystem,
-    useGrouping: false,
-    minimumIntegerDigits: maximumFractionDigits || 1,
-  }).format(Number(remainder < 0n ? -remainder : remainder));
-
-  return formatter
-    .formatToParts(whole === 0n && amount < 0n ? -0 : Number(whole))
-    .map((part) => (part.type === 'fraction' ? fraction : part.value))
-    .join('');
+  const formatted = formatter.format(Number(absolute / scale));
+  const body =
+    maximumFractionDigits === 0
+      ? formatted
+      : // La última racha de dígitos son los decimales (ceros): se sustituyen por los reales.
+        formatted.replace(
+          new RegExp(String.raw`\d{${maximumFractionDigits}}(?=\D*$)`),
+          String(absolute % scale).padStart(maximumFractionDigits, '0'),
+        );
+  return negative ? `-${body}` : body;
 }
 
 /** Suma exactamente y valida que el total se pueda guardar como entero seguro. */

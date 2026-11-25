@@ -56,3 +56,30 @@ describe('integridad de importes en unidad menor (RNF-09)', () => {
     expect(parseMoney('+5', 'USD', 'en-US')).toBe(500);
   });
 });
+
+describe('compatibilidad con Hermes (sin Intl.NumberFormat.formatToParts)', () => {
+  const original = Intl.NumberFormat.prototype.formatToParts;
+
+  beforeEach(() => {
+    Object.defineProperty(Intl.NumberFormat.prototype, 'formatToParts', {
+      value: undefined,
+      configurable: true,
+    });
+  });
+
+  afterEach(() => {
+    Object.defineProperty(Intl.NumberFormat.prototype, 'formatToParts', {
+      value: original,
+      configurable: true,
+    });
+  });
+
+  it('formatMoney y parseMoney funcionan sin formatToParts', () => {
+    expect(formatMoney(-1, 'USD', 'en-US')).toBe('-$0.01');
+    expect(formatMoney(123456, 'EUR', 'de-DE')).toBe('1.234,56 €');
+    expect(formatMoney(150050, 'DOP', 'es-DO')).toContain('1,500.50');
+    expect(formatMoney(500, 'JPY', 'ja-JP')).toContain('500');
+    expect(parseMoney('12,34', 'EUR', 'de-DE')).toBe(1234);
+    expect(parseMoney('12.34', 'USD', 'en-US')).toBe(1234);
+  });
+});
