@@ -18,6 +18,17 @@ export const es = {
     save: 'Guardar',
     scanReceipt: 'Escanear factura',
   },
+  capture: {
+    title: 'Captura',
+    kindExpense: 'Gasto',
+    kindIncome: 'Ingreso',
+    kindSwitch: 'Tipo de movimiento',
+    amount: 'Monto',
+    category: 'Categoría',
+    note: 'Nota (opcional)',
+    date: 'Fecha (AAAA-MM-DD)',
+    noCategories: 'No hay categorías para este tipo.',
+  },
   errors: {
     OFFLINE: 'Sin conexión. Tus datos se guardan en el móvil.',
     QUOTA_EXCEEDED:
