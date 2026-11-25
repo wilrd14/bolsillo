@@ -21,6 +21,14 @@ type CategoryUpdate = Omit<NewCategory, 'id' | 'created_at'>;
 
 export function createCategoryRepository(db: Database) {
   return {
+    async findById(id: string): Promise<CategoryRow | undefined> {
+      const [row] = await db.getAllAsync<CategoryRow>(
+        'SELECT * FROM category WHERE id = ? AND deleted_at IS NULL',
+        id,
+      );
+      return row;
+    },
+
     insert(row: NewCategory) {
       return db.runAsync(
         `INSERT INTO category (

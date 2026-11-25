@@ -1,6 +1,8 @@
 import type { Database } from '@/db/database';
 import { migrate } from '@/db/migrate';
 
+export { wipeLocalData } from '@/db/wipe-local-data';
+
 interface Connection extends Database {
   closeAsync(): Promise<void>;
 }

@@ -27,6 +27,38 @@ type TransactionUpdate = Omit<NewTransaction, 'id' | 'created_at'>;
 
 export function createTransactionRepository(db: Database) {
   return {
+    async findById(id: string): Promise<TransactionRow | undefined> {
+      const [row] = await db.getAllAsync<TransactionRow>(
+        'SELECT * FROM "transaction" WHERE id = ? AND deleted_at IS NULL',
+        id,
+      );
+      return row;
+    },
+
+    async hasAvailableLinks(row: TransactionRow): Promise<boolean> {
+      const [result] = await db.getAllAsync<{ available: number }>(
+        `SELECT (
+          (? IS NULL OR EXISTS (SELECT 1 FROM receipt WHERE id = ? AND deleted_at IS NULL))
+          AND (? IS NULL OR EXISTS (
+            SELECT 1 FROM recurring_rule WHERE id = ? AND deleted_at IS NULL
+          ))
+          AND NOT EXISTS (
+            SELECT 1 FROM "transaction" WHERE id <> ?
+              AND (receipt_id = ? OR (recurring_id = ? AND occurrence_index = ?))
+          )
+        ) AS available`,
+        row.receipt_id,
+        row.receipt_id,
+        row.recurring_id,
+        row.recurring_id,
+        row.id,
+        row.receipt_id,
+        row.recurring_id,
+        row.occurrence_index,
+      );
+      return result.available === 1;
+    },
+
     insert(row: NewTransaction) {
       return db.runAsync(
         `INSERT INTO "transaction" (
