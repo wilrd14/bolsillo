@@ -5,6 +5,11 @@ import { AppError } from '@/core/errors';
 import type { Database } from '@/db/database';
 import { createLocalId } from '@/db/local-id';
 import { withDatabaseTransaction } from '@/db/transaction';
+import {
+  checkBudgetAlerts,
+  expoBudgetNotifications,
+  type BudgetNotifications,
+} from '@/features/budgets';
 import { findCategoryById } from '@/features/categories';
 import {
   createTransactionRepository,
@@ -61,10 +66,30 @@ async function validateRelations(db: Database, row: TransactionRow, previous?: T
   }
 }
 
+type ExpenseNotifications = Pick<BudgetNotifications, 'getPermission' | 'send'>;
+
+async function notifyBudget(
+  db: Database,
+  row: TransactionRow,
+  notifications: ExpenseNotifications,
+) {
+  if (row.kind !== 'expense') return;
+  try {
+    await checkBudgetAlerts(db, row, notifications);
+  } catch {
+    // El gasto y su outbox ya se confirmaron. Otro gasto puede reintentar el aviso.
+    return;
+  }
+}
+
 /** Guarda un movimiento y encola su versión inicial. */
-export async function createTransaction(db: Database, input: unknown) {
+export async function createTransaction(
+  db: Database,
+  input: unknown,
+  notifications: ExpenseNotifications = expoBudgetNotifications,
+) {
   const parsed = validate(createSchema, input);
-  return withDatabaseTransaction(db, async () => {
+  const saved = await withDatabaseTransaction(db, async () => {
     const now = new Date();
     const timestamp = toIsoUtc(now);
     const row: TransactionRow = {
@@ -85,13 +110,20 @@ export async function createTransaction(db: Database, input: unknown) {
     await enqueueChange(db, 'transaction', row);
     return row;
   });
+  await notifyBudget(db, saved, notifications);
+  return saved;
 }
 
 /** Aplica una edición parcial y conserva los campos omitidos. */
-export async function updateTransaction(db: Database, id: unknown, input: unknown) {
+export async function updateTransaction(
+  db: Database,
+  id: unknown,
+  input: unknown,
+  notifications: ExpenseNotifications = expoBudgetNotifications,
+) {
   const transactionId = validate(idSchema, id);
   const patch = validate(updateSchema, input);
-  return withDatabaseTransaction(db, async () => {
+  const { saved, affectsSpending } = await withDatabaseTransaction(db, async () => {
     const repository = createTransactionRepository(db);
     const current = await repository.findById(transactionId);
     if (!current) {
@@ -115,8 +147,15 @@ export async function updateTransaction(db: Database, id: unknown, input: unknow
     await validateRelations(db, row, current);
     await repository.update(row.id, row);
     await enqueueChange(db, 'transaction', row);
-    return row;
+    const affectsSpending =
+      row.kind !== current.kind ||
+      row.amount_minor !== current.amount_minor ||
+      row.category_id !== current.category_id ||
+      row.occurred_at.slice(0, 7) !== current.occurred_at.slice(0, 7);
+    return { saved: row, affectsSpending };
   });
+  if (affectsSpending) await notifyBudget(db, saved, notifications);
+  return saved;
 }
 
 /** Borra lógicamente y publica la marca de borrado para la sincronización. */

@@ -50,8 +50,8 @@ export async function createBudget(db: Database, input: unknown) {
       created_at: previous?.created_at ?? timestamp,
       updated_at: timestamp,
       deleted_at: null,
-      alerted_80: 0,
-      alerted_100: 0,
+      alerted_80: previous?.alerted_80 ?? 0,
+      alerted_100: previous?.alerted_100 ?? 0,
     };
     if (previous) {
       await repository.update(row);
