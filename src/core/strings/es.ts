@@ -72,6 +72,25 @@ export const es = {
     confirmDeleteMessage: 'Dejará de contar en tus totales.',
     cancel: 'Cancelar',
   },
+  categories: {
+    title: 'Categorías',
+    open: 'Categorías',
+    openHint: 'Crea, edita o archiva tus categorías',
+    kindSwitch: 'Tipo de categoría',
+    newCategory: 'Nueva categoría',
+    editCategory: 'Editar categoría',
+    name: 'Nombre',
+    icon: 'Icono',
+    color: 'Color',
+    edit: 'Editar',
+    archive: 'Archivar',
+    cancel: 'Cancelar',
+    empty: 'Aún no tienes categorías de este tipo. Crea la primera.',
+    nameRequired: 'Escribe un nombre.',
+    archiveTitle: '¿Archivar esta categoría?',
+    archiveMessage:
+      'Dejará de ofrecerse al anotar movimientos nuevos. Tu historial se conserva tal cual.',
+  },
   errors: {
     OFFLINE: 'Sin conexión. Tus datos se guardan en el móvil.',
     QUOTA_EXCEEDED:

@@ -4,6 +4,7 @@ import { createCategoryRepository } from './data/category-repository';
 /** API pública de categorías. */
 export { archiveCategory, createCategory, updateCategory } from './service/write-categories';
 
+export { CategoriesScreen } from './ui/CategoriesScreen';
 export type { CategoryRow } from './data/category-repository';
 
 /** Lista las categorías vigentes (activas y archivadas) para nombres y filtros. */

@@ -1,6 +1,8 @@
+import { router } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 
-import { useTheme } from '@/ui';
+import { es } from '@/core/strings/es';
+import { Button, useTheme } from '@/ui';
 
 /** Pantalla Más vacía (marcador para categorías, recurrentes, cuenta y ajustes). */
 export default function MoreScreen() {
@@ -19,6 +21,13 @@ export default function MoreScreen() {
       >
         Más
       </Text>
+      <Button
+        label={es.categories.open}
+        variant="secondary"
+        accessibilityHint={es.categories.openHint}
+        onPress={() => router.push('/categories')}
+        style={{ marginTop: theme.spacing.lg }}
+      />
     </View>
   );
 }
