@@ -2,6 +2,7 @@ import { router, useFocusEffect } from 'expo-router';
 import { useCallback } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { formatMoney } from '@/core/money';
 import { es } from '@/core/strings/es';
 import {
   formatMonth,
@@ -18,6 +19,8 @@ import {
   useTheme,
 } from '@/ui';
 
+const LOCALE = 'es-DO';
+
 const KIND_FILTERS = [
   { value: null, label: es.transactions.all },
   { value: 'expense', label: es.capture.kindExpense },
@@ -26,7 +29,7 @@ const KIND_FILTERS = [
 
 /** Pantalla Movimientos (Brief §12.5): búsqueda, filtros, agrupación por día y borrado con deshacer. */
 export function TransactionsScreen() {
-  const { colors, spacing, radii, typography } = useTheme();
+  const { colors, spacing, radii, typography, cardElevation } = useTheme();
   const vm = useTransactions();
   const { refresh } = vm;
 
@@ -39,26 +42,51 @@ export function TransactionsScreen() {
 
   const renderItem = ({ item }: { item: ListItem }) => {
     if (item.type === 'header') {
+      const total = `${item.totalMinor > 0 ? '+' : ''}${formatMoney(item.totalMinor, item.currency, LOCALE)}`;
       return (
-        <Text
-          accessibilityRole="header"
+        <View
           style={[
-            typography.label,
-            {
-              color: colors.textMuted,
-              backgroundColor: colors.background,
-              paddingHorizontal: spacing.lg,
-              paddingVertical: spacing.sm,
-            },
+            styles.dayHeader,
+            { paddingHorizontal: spacing.lg, paddingTop: spacing.lg, paddingBottom: spacing.sm },
           ]}
         >
-          {item.label}
-        </Text>
+          <Text
+            accessibilityRole="header"
+            style={[typography.bodyMedium, styles.flex, { color: colors.text }]}
+          >
+            {item.label}
+          </Text>
+          <Text
+            style={[
+              typography.label,
+              {
+                color: item.totalMinor >= 0 ? colors.income : colors.expense,
+                backgroundColor: colors.surfaceAlt,
+                borderRadius: radii.pill,
+                paddingHorizontal: spacing.sm,
+                paddingVertical: spacing.xs,
+              },
+            ]}
+          >
+            {es.transactions.dayTotal(total)}
+          </Text>
+        </View>
       );
     }
     return (
-      <View style={styles.rowWrap}>
-        <View style={styles.flex}>
+      <View
+        style={[
+          styles.rowWrap,
+          cardElevation,
+          {
+            backgroundColor: colors.surface,
+            borderRadius: radii.card,
+            marginHorizontal: spacing.lg,
+            marginBottom: spacing.sm,
+          },
+        ]}
+      >
+        <View style={[styles.flex, styles.rowInner]}>
           <TransactionRow
             title={item.title}
             subtitle={item.categoryName}
@@ -74,10 +102,7 @@ export function TransactionsScreen() {
           onPress={() => vm.requestDelete(item.id)}
           accessibilityRole="button"
           accessibilityLabel={`${es.transactions.deleteItem}: ${item.title}`}
-          style={[
-            styles.delete,
-            { backgroundColor: colors.surface, borderBottomColor: colors.border },
-          ]}
+          style={styles.delete}
         >
           <Text style={[typography.label, { color: colors.danger }]}>
             {es.transactions.deleteItem}
@@ -125,6 +150,9 @@ export function TransactionsScreen() {
   return (
     <View style={[styles.flex, { backgroundColor: colors.background }]}>
       <View style={{ padding: spacing.lg, gap: spacing.sm }}>
+        <Text style={[typography.label, { color: colors.primary }]}>
+          {es.transactions.eyebrow.toUpperCase()}
+        </Text>
         <Text accessibilityRole="header" style={[typography.title1, { color: colors.text }]}>
           {es.transactions.title}
         </Text>
@@ -138,12 +166,12 @@ export function TransactionsScreen() {
           style={[
             typography.body,
             styles.field,
+            cardElevation,
             {
               color: colors.text,
               backgroundColor: colors.surface,
-              borderColor: colors.border,
-              borderRadius: radii.input,
-              paddingHorizontal: spacing.md,
+              borderRadius: radii.pill,
+              paddingHorizontal: spacing.lg,
             },
           ]}
         />
@@ -170,7 +198,10 @@ export function TransactionsScreen() {
                 ]}
               >
                 <Text
-                  style={[typography.body, { color: selected ? colors.onPrimary : colors.text }]}
+                  style={[
+                    typography.bodyMedium,
+                    { color: selected ? colors.onPrimary : colors.text },
+                  ]}
                 >
                   {item.label}
                 </Text>
@@ -228,6 +259,39 @@ export function TransactionsScreen() {
         ) : (
           <Button label={es.transactions.thisMonth} variant="secondary" onPress={vm.thisMonth} />
         )}
+        <View
+          accessible
+          accessibilityRole="summary"
+          style={[
+            styles.summary,
+            cardElevation,
+            { backgroundColor: colors.surface, borderRadius: radii.card, padding: spacing.lg },
+          ]}
+        >
+          <View style={styles.flex}>
+            <Text style={[typography.bodyMedium, { color: colors.text }]}>
+              {vm.filters.month ? formatMonth(vm.filters.month) : es.transactions.allMonths}
+            </Text>
+            <Text style={[typography.secondary, { color: colors.textMuted }]}>
+              {es.transactions.movementsCount(vm.summary.count)}
+            </Text>
+          </View>
+          {vm.summary.currency && vm.summary.complete ? (
+            <View style={styles.net}>
+              <Text style={[typography.label, { color: colors.textMuted }]}>
+                {es.transactions.netBalance.toUpperCase()}
+              </Text>
+              <Text
+                style={[
+                  typography.title2,
+                  { color: vm.summary.netMinor >= 0 ? colors.income : colors.expense },
+                ]}
+              >
+                {formatMoney(vm.summary.netMinor, vm.summary.currency, LOCALE)}
+              </Text>
+            </View>
+          ) : null}
+        </View>
       </View>
 
       {vm.deleteError ? (
@@ -279,15 +343,19 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { textAlign: 'center' },
   chips: { flexDirection: 'row', gap: 8, alignItems: 'center' },
-  rowWrap: { flexDirection: 'row', alignItems: 'stretch' },
+  rowWrap: { flexDirection: 'row', alignItems: 'stretch', overflow: 'hidden' },
+  // La fila base trae un borde inferior pensado para listas planas.
+  rowInner: { marginBottom: -1 },
+  dayHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  summary: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  net: { alignItems: 'flex-end' },
   delete: {
     minWidth: MIN_TOUCH_TARGET,
     minHeight: MIN_TOUCH_TARGET,
     paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
-    borderBottomWidth: 1,
   },
-  field: { minHeight: MIN_TOUCH_TARGET, borderWidth: 1 },
+  field: { minHeight: MIN_TOUCH_TARGET },
   kind: { flex: 1, minHeight: MIN_TOUCH_TARGET, alignItems: 'center', justifyContent: 'center' },
 });

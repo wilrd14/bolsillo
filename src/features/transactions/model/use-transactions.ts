@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
+import { sumMoney } from '@/core/money';
 import { es } from '@/core/strings/es';
 import type { MovementKind } from '@/db/database';
 import { useDatabase } from '@/db/provider';
@@ -21,7 +22,14 @@ export interface TransactionFiltersState {
 }
 
 export type ListItem =
-  | { type: 'header'; key: string; label: string }
+  | {
+      type: 'header';
+      key: string;
+      label: string;
+      /** Neto del día (ingresos menos gastos) de los movimientos cargados. */
+      totalMinor: number;
+      currency: string;
+    }
   | {
       type: 'row';
       key: string;
@@ -51,6 +59,10 @@ export function formatDay(dateKey: string): string {
 export function formatMonth(monthKey: string): string {
   const [year, month] = monthKey.split('-');
   return `${es.transactions.months[Number(month) - 1]} ${year}`;
+}
+
+function netMinor(list: readonly Row[]): number {
+  return sumMoney(list.map((r) => (r.kind === 'expense' ? -r.amount_minor : r.amount_minor)));
 }
 
 function currentMonthKey(): string {
@@ -192,7 +204,14 @@ export function useTransactions() {
       if (row.id === pendingId) continue;
       if (row.occurred_at !== lastDay) {
         lastDay = row.occurred_at;
-        result.push({ type: 'header', key: `h-${lastDay}`, label: formatDay(lastDay) });
+        const day = rows.filter((r) => r.occurred_at === lastDay && r.id !== pendingId);
+        result.push({
+          type: 'header',
+          key: `h-${lastDay}`,
+          label: formatDay(lastDay),
+          totalMinor: netMinor(day),
+          currency: row.currency,
+        });
       }
       const category = byId.get(row.category_id);
       const categoryName = category?.name ?? es.transactions.uncategorized;
@@ -236,6 +255,13 @@ export function useTransactions() {
     hasFilters,
     categories: visibleCategories,
     items,
+    /** Neto de lo cargado; solo es el total real cuando ya no queda nada por cargar. */
+    summary: {
+      count: rows.length - (pendingId ? 1 : 0),
+      netMinor: netMinor(rows.filter((r) => r.id !== pendingId)),
+      currency: rows[0]?.currency ?? null,
+      complete: !hasMore,
+    },
     status,
     retry: () => {
       setStatus('loading');

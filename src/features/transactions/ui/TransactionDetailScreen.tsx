@@ -2,17 +2,12 @@ import { router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
+import { formatMoney } from '@/core/money';
 import { es } from '@/core/strings/es';
+import { DeleteMovementSheet } from '@/features/transactions/ui/DeleteMovementSheet';
+import { formatDay } from '@/features/transactions/model/use-transactions';
 import { useTransactionDetail } from '@/features/transactions/model/use-transaction-detail';
-import {
-  AmountInput,
-  Banner,
-  Button,
-  CategoryChip,
-  ConfirmDialog,
-  MIN_TOUCH_TARGET,
-  useTheme,
-} from '@/ui';
+import { AmountInput, Banner, Button, CategoryChip, MIN_TOUCH_TARGET, useTheme } from '@/ui';
 
 export interface TransactionDetailScreenProps {
   readonly id: string;
@@ -20,7 +15,7 @@ export interface TransactionDetailScreenProps {
 
 /** Detalle y edición de un movimiento (Brief §12.5). */
 export function TransactionDetailScreen({ id }: TransactionDetailScreenProps) {
-  const { colors, spacing, radii, typography } = useTheme();
+  const { colors, spacing, radii, typography, cardElevation } = useTheme();
   const vm = useTransactionDetail(id);
   const [confirming, setConfirming] = useState(false);
   const { done } = vm;
@@ -32,12 +27,12 @@ export function TransactionDetailScreen({ id }: TransactionDetailScreenProps) {
   const inputStyle = [
     typography.body,
     styles.field,
+    cardElevation,
     {
       color: colors.text,
       backgroundColor: colors.surface,
-      borderColor: colors.border,
-      borderRadius: radii.input,
-      paddingHorizontal: spacing.md,
+      borderRadius: radii.card,
+      paddingHorizontal: spacing.lg,
     },
   ];
   const back = <Button label={es.transactions.back} variant="text" onPress={() => router.back()} />;
@@ -90,7 +85,9 @@ export function TransactionDetailScreen({ id }: TransactionDetailScreenProps) {
           label={es.capture.amount}
         />
 
-        <Text style={[typography.label, { color: colors.textMuted }]}>{es.capture.category}</Text>
+        <Text style={[typography.label, { color: colors.textMuted }]}>
+          {es.capture.category.toUpperCase()}
+        </Text>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
@@ -148,13 +145,12 @@ export function TransactionDetailScreen({ id }: TransactionDetailScreenProps) {
           disabled={vm.saving}
         />
       </ScrollView>
-      <ConfirmDialog
+      <DeleteMovementSheet
         visible={confirming}
-        title={es.transactions.confirmDeleteTitle}
-        message={es.transactions.confirmDeleteMessage}
-        confirmLabel={es.transactions.deleteItem}
-        cancelLabel={es.transactions.cancel}
-        variant="destructive"
+        title={vm.merchant || vm.note || es.transactions.detailTitle}
+        dateLabel={vm.date ? formatDay(vm.date) : ''}
+        amountLabel={`${vm.kind === 'expense' ? '-' : '+'}${formatMoney(vm.amountMinor, vm.currency, 'es-DO')}`}
+        amountColor={vm.kind === 'expense' ? colors.expense : colors.income}
         onConfirm={() => {
           setConfirming(false);
           void vm.remove();
@@ -168,5 +164,5 @@ export function TransactionDetailScreen({ id }: TransactionDetailScreenProps) {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   center: { alignItems: 'center', justifyContent: 'center' },
-  field: { minHeight: MIN_TOUCH_TARGET, borderWidth: 1 },
+  field: { minHeight: MIN_TOUCH_TARGET },
 });

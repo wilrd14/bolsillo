@@ -33,3 +33,24 @@ it('renders the form with Save disabled while the amount is empty', async () => 
   pressNode(scan!);
   act(() => root.unmount());
 });
+
+it('types the amount with the on-screen keypad and enables Save', async () => {
+  const root = renderWithTheme(<CaptureScreen />);
+  await act(async () => {});
+  const key = (label: string) =>
+    root.container.queryAll((n) => n.props.accessibilityLabel === label)[0];
+  pressNode(key(`${es.capture.keypadKey} 4`));
+  pressNode(key(`${es.capture.keypadKey} 5`));
+  const save = root.container
+    .queryAll((n) => n.props.accessibilityRole === 'button')
+    .find((n) => n.props.accessibilityLabel === es.actions.save);
+  expect(save?.props.accessibilityState).toMatchObject({ disabled: false });
+  pressNode(key(es.capture.keypadDelete));
+  pressNode(key(es.capture.keypadDelete));
+  expect(
+    root.container
+      .queryAll((n) => n.props.accessibilityRole === 'button')
+      .find((n) => n.props.accessibilityLabel === es.actions.save)?.props.accessibilityState,
+  ).toMatchObject({ disabled: true });
+  act(() => root.unmount());
+});
