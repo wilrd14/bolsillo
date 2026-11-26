@@ -14,6 +14,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { es } from '@/core/strings/es';
 import { DatabaseProvider } from '@/db/provider';
+import { AccountProvider } from '@/features/account';
 import { ThemeProvider, Toast, useTheme } from '@/ui';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -33,24 +34,24 @@ const styles = StyleSheet.create({
 function RootNavigator() {
   const theme = useTheme();
 
+  const header = (title: string) => ({
+    headerShown: true,
+    title,
+    headerTransparent: false,
+    headerBackButtonDisplayMode: 'minimal' as const,
+    headerShadowVisible: false,
+    headerStyle: { backgroundColor: theme.colors.background },
+    headerTintColor: theme.colors.text,
+    headerTitleStyle: { color: theme.colors.text },
+  });
+
   return (
     <>
       <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
-        <Stack.Screen
-          name="categories"
-          options={{
-            headerShown: true,
-            title: es.categories.title,
-            headerTransparent: false,
-            headerBackButtonDisplayMode: 'minimal',
-            headerShadowVisible: false,
-            headerStyle: { backgroundColor: theme.colors.background },
-            headerTintColor: theme.colors.text,
-            headerTitleStyle: { color: theme.colors.text },
-          }}
-        />
+        <Stack.Screen name="categories" options={header(es.categories.title)} />
+        <Stack.Screen name="account" options={header(es.account.title)} />
       </Stack>
     </>
   );
@@ -109,8 +110,10 @@ export default function RootLayout() {
   return (
     <ThemeProvider>
       <DatabaseProvider>
-        <RootNavigator />
-        <ForegroundNotifications />
+        <AccountProvider>
+          <RootNavigator />
+          <ForegroundNotifications />
+        </AccountProvider>
       </DatabaseProvider>
     </ThemeProvider>
   );

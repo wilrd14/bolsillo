@@ -28,6 +28,13 @@ export default function MoreScreen() {
         onPress={() => router.push('/categories')}
         style={{ marginTop: theme.spacing.lg }}
       />
+      <Button
+        label={es.account.open}
+        variant="secondary"
+        accessibilityHint={es.account.openHint}
+        onPress={() => router.push('/account')}
+        style={{ marginTop: theme.spacing.md }}
+      />
     </View>
   );
 }
