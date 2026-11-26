@@ -77,6 +77,7 @@ export default function TabsLayout() {
         name="index"
         options={{
           title: 'Inicio',
+          headerShown: false,
           tabBarAccessibilityLabel: 'Inicio',
           tabBarIcon: ({ color }) => <TabGlyph glyph="●" color={color} />,
         }}

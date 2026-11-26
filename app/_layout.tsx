@@ -51,6 +51,7 @@ function RootNavigator() {
       <StatusBar style={theme.mode === 'dark' ? 'light' : 'dark'} />
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="(tabs)" />
+        <Stack.Screen name="summary" options={header(es.summary.title)} />
         <Stack.Screen name="categories" options={header(es.categories.title)} />
         <Stack.Screen name="account" options={header(es.account.title)} />
         <Stack.Screen name="scan" options={header(es.scan.title)} />
