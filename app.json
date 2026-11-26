@@ -17,7 +17,15 @@
       "expo-sqlite",
       "expo-font",
       "expo-secure-store",
-      "@react-native-community/datetimepicker"
+      "@react-native-community/datetimepicker",
+      [
+        "expo-image-picker",
+        {
+          "cameraPermission": "Bolsillo usa la cámara para fotografiar tus facturas y extraer sus datos.",
+          "photosPermission": "Bolsillo accede a tus fotos solo para que elijas la factura que quieres escanear.",
+          "microphonePermission": false
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
