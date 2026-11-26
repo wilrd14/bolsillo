@@ -154,3 +154,31 @@ it.each([
   const row = await service.enqueueReceipt('file:///synthetic.jpg');
   expect(row).toMatchObject({ status: 'failed', error_code: code, extracted_json: null });
 });
+
+it('lists the inbox: offline then done, failed, and not the confirmed or discarded ones', async () => {
+  const offline = await service.enqueueReceipt('file:///a.jpg');
+  expect((await service.listInbox()).map((r) => [r.id, r.status])).toEqual([
+    [offline.id, 'pending'],
+  ]);
+
+  connected = true;
+  await service.processQueue();
+  expect((await service.listInbox()).map((r) => r.status)).toEqual(['done']);
+
+  deps.remote.scan = async () => ({ ok: false, body: { error: { code: 'not_a_receipt' } } });
+  const failed = await service.enqueueReceipt('file:///b.jpg');
+  expect(failed.status).toBe('failed');
+  expect((await service.listInbox()).map((r) => r.status).sort()).toEqual(['done', 'failed']);
+
+  const category = await createCategory(db, { name: 'Prueba', kind: 'expense' });
+  await service.confirmReceipt(offline.id, {
+    category_id: category.id,
+    amount_minor: 600,
+    currency: 'DOP',
+    occurred_at: '2020-01-01',
+  });
+  expect((await service.listInbox()).map((r) => r.id)).toEqual([failed.id]);
+
+  await service.cancelReceipt(failed.id);
+  expect(await service.listInbox()).toEqual([]);
+});

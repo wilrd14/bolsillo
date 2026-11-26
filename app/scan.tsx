@@ -1,6 +1,6 @@
-import { View } from 'react-native';
+import { ScanScreen } from '@/features/receipt-scan';
 
-/** Ruta vacía del escaneo de factura (la implementa T-025). */
-export default function ScanScreen() {
-  return <View />;
+/** Ruta del escaneo de factura. */
+export default function ScanRoute() {
+  return <ScanScreen />;
 }

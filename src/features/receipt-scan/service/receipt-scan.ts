@@ -156,6 +156,9 @@ export function createReceiptScanService(db: Database, deps: ReceiptScanDependen
     listPending() {
       return withDatabaseAccess(db, repository.pending);
     },
+    listInbox() {
+      return withDatabaseAccess(db, repository.listInbox);
+    },
     processQueue,
     watchQueue(onError: (error: AppError) => void) {
       const refresh = () => {

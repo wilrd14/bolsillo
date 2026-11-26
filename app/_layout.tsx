@@ -15,6 +15,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { es } from '@/core/strings/es';
 import { DatabaseProvider } from '@/db/provider';
 import { AccountProvider } from '@/features/account';
+import { ReceiptScanProvider } from '@/features/receipt-scan';
 import { ThemeProvider, Toast, useTheme } from '@/ui';
 
 SplashScreen.preventAutoHideAsync().catch(() => undefined);
@@ -52,6 +53,8 @@ function RootNavigator() {
         <Stack.Screen name="(tabs)" />
         <Stack.Screen name="categories" options={header(es.categories.title)} />
         <Stack.Screen name="account" options={header(es.account.title)} />
+        <Stack.Screen name="scan" options={header(es.scan.title)} />
+        <Stack.Screen name="receipt-review" options={header(es.scan.reviewTitle)} />
       </Stack>
     </>
   );
@@ -111,8 +114,10 @@ export default function RootLayout() {
     <ThemeProvider>
       <DatabaseProvider>
         <AccountProvider>
-          <RootNavigator />
-          <ForegroundNotifications />
+          <ReceiptScanProvider>
+            <RootNavigator />
+            <ForegroundNotifications />
+          </ReceiptScanProvider>
         </AccountProvider>
       </DatabaseProvider>
     </ThemeProvider>

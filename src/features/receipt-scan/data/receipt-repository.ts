@@ -33,6 +33,16 @@ export function createReceiptRepository(db: Database) {
         "SELECT * FROM receipt WHERE status = 'pending' AND deleted_at IS NULL ORDER BY created_at, id",
       );
     },
+    /** Escaneos con foto y sin movimiento asociado, del más reciente al más antiguo. */
+    listInbox() {
+      return db.getAllAsync<ReceiptRow>(
+        `SELECT * FROM receipt r
+         WHERE r.deleted_at IS NULL AND r.local_uri IS NOT NULL
+           AND r.status IN ('pending', 'processing', 'done', 'failed')
+           AND NOT EXISTS (SELECT 1 FROM "transaction" t WHERE t.receipt_id = r.id)
+         ORDER BY r.created_at DESC, r.id`,
+      );
+    },
     discardedFiles() {
       return db.getAllAsync<{ id: string; local_uri: string }>(
         'SELECT id, local_uri FROM receipt WHERE deleted_at IS NOT NULL AND local_uri IS NOT NULL',
