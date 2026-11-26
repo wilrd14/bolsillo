@@ -241,3 +241,13 @@ it('borrado lógico idempotente y update sin efecto tras el borrado', async () =
     { id: transaction.id, deleted_at: changedAt },
   ]);
 });
+
+it('desempata los movimientos del mismo día con el último registrado primero', async () => {
+  const transactions = createTransactionRepository(db);
+  await createCategoryRepository(db).insert(category);
+  // El id más "alto" se registró antes: el orden debe seguir la hora de registro, no el id.
+  await transactions.insert({ ...transaction, id: 'zzz', created_at: '2026-01-02T08:00:00.000Z' });
+  await transactions.insert({ ...transaction, id: 'aaa', created_at: '2026-01-02T09:00:00.000Z' });
+  const rows = await transactions.list({ limit: 10, offset: 0 });
+  expect(rows.map((row) => row.id)).toEqual(['aaa', 'zzz']);
+});

@@ -144,7 +144,7 @@ export function createTransactionRepository(db: Database) {
       const where = conditions.length ? `WHERE ${conditions.join(' AND ')}` : '';
       return db.getAllAsync<TransactionRow>(
         `SELECT * FROM "transaction" ${where}
-          ORDER BY occurred_at DESC, id DESC LIMIT ? OFFSET ?`,
+          ORDER BY occurred_at DESC, created_at DESC, id DESC LIMIT ? OFFSET ?`,
         ...params,
         filters.limit,
         filters.offset,
