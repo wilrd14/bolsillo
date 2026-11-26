@@ -87,7 +87,7 @@ bolsillo/
 
 ## 🚀 Empezar
 
-**Requisitos:** Node.js 20 o superior, un móvil con [Expo Go](https://expo.dev/go) o un emulador, y (opcional, para el backend local) Docker y la CLI de Supabase.
+**Requisitos:** Node.js 24 (o 22.13 o superior; las pruebas usan `node:sqlite`), un móvil con [Expo Go](https://expo.dev/go) o un emulador, y (opcional, para el backend local) Docker y la CLI de Supabase.
 
 ```bash
 git clone https://github.com/wilrd14/bolsillo.git
